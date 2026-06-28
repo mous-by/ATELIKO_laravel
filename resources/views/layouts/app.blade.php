@@ -109,6 +109,68 @@
         html.dark-theme .install-check small{color:#9da1b2}
         @media(display-mode:standalone){#sidebarInstallBox{display:none!important}}
         @media(max-width:576px){.install-hero{grid-template-columns:1fr;text-align:center}.install-icon{margin:auto}.install-actions>*{width:100%}}
+
+        /* Navigation mobile façon application */
+        .mobile-bottom-nav{display:none}
+        @media(max-width:768px){
+            body{padding-bottom:76px}
+            .page-wrapper{margin-bottom:0}
+            .page-content{padding:1rem 1rem 1.25rem}
+            .page-footer{display:none}
+            .mobile-bottom-nav{
+                position:fixed;
+                left:0;
+                right:0;
+                bottom:0;
+                z-index:1040;
+                display:grid;
+                grid-auto-flow:column;
+                grid-auto-columns:1fr;
+                align-items:center;
+                min-height:68px;
+                padding:7px max(8px, env(safe-area-inset-left)) calc(7px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
+                background:#fff;
+                border-top:1px solid rgba(13,110,253,.12);
+                box-shadow:0 -10px 28px rgba(31,45,61,.14);
+            }
+            .mobile-bottom-nav .mobile-nav-item{
+                min-width:0;
+                height:54px;
+                display:flex;
+                flex-direction:column;
+                align-items:center;
+                justify-content:center;
+                gap:3px;
+                border:0;
+                border-radius:14px;
+                background:transparent;
+                color:#6b7280;
+                font-size:.68rem;
+                font-weight:600;
+                line-height:1.05;
+                text-align:center;
+                white-space:nowrap;
+            }
+            .mobile-bottom-nav .mobile-nav-item i{
+                font-size:1.42rem;
+                line-height:1;
+            }
+            .mobile-bottom-nav .mobile-nav-item.active{
+                color:#0d6efd;
+                background:rgba(13,110,253,.1);
+            }
+            .mobile-bottom-nav .mobile-nav-more{cursor:pointer}
+            html.dark-theme .mobile-bottom-nav{
+                background:#242632;
+                border-top-color:#3a3d50;
+                box-shadow:0 -10px 28px rgba(0,0,0,.34);
+            }
+            html.dark-theme .mobile-bottom-nav .mobile-nav-item{color:#aeb3c2}
+            html.dark-theme .mobile-bottom-nav .mobile-nav-item.active{
+                color:#7db3ff;
+                background:rgba(13,110,253,.18);
+            }
+        }
     </style>
     {{-- Appliquer le thème AVANT le rendu pour éviter le flash --}}
     <script>
@@ -268,6 +330,30 @@
         @yield('content')
     </div></div>
     <footer class="page-footer"><p class="mb-0">© {{ date('Y') }} ATELIKO</p></footer>
+    <nav class="mobile-bottom-nav" aria-label="Navigation mobile">
+        <a href="{{ route('dashboard') }}" class="mobile-nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <i class="bx bx-home-circle"></i>
+            <span>Home</span>
+        </a>
+        <a href="{{ route('clients.index') }}" class="mobile-nav-item {{ request()->routeIs('clients.index', 'clients.show', 'clients.edit', 'clients.create') ? 'active' : '' }}">
+            <i class="bx bx-user"></i>
+            <span>Clients</span>
+        </a>
+        @if(!$user->isTailleur())
+        <a href="{{ route('rendezvous.index') }}" class="mobile-nav-item {{ request()->routeIs('rendezvous.*') ? 'active' : '' }}">
+            <i class="bx bx-calendar"></i>
+            <span>Rendez-vous</span>
+        </a>
+        <a href="{{ route('paiements.index') }}" class="mobile-nav-item {{ request()->routeIs('paiements.*') ? 'active' : '' }}">
+            <i class="bx bx-wallet"></i>
+            <span>Paiement</span>
+        </a>
+        @endif
+        <button type="button" class="mobile-nav-item mobile-nav-more" id="mobileBottomMore">
+            <i class="bx bx-grid-alt"></i>
+            <span>Autres</span>
+        </button>
+    </nav>
 </div>
 
 {{-- ===== MODAL ABONNEMENT PROPRIETAIRE ===== --}}
@@ -547,6 +633,7 @@
     document.getElementById('sidebarToggle')?.addEventListener('click', toggle);
     document.getElementById('sidebarClose')?.addEventListener('click', toggle);
     document.getElementById('sidebarOverlay')?.addEventListener('click', () => wrapper.classList.remove('toggled'));
+    document.getElementById('mobileBottomMore')?.addEventListener('click', () => wrapper.classList.add('toggled'));
 
     // Auto-fermeture alertes
     setTimeout(() => document.querySelectorAll('.alert.show').forEach(a => bootstrap.Alert.getOrCreateInstance(a).close()), 5000);
@@ -579,19 +666,22 @@
     const laterBtn = document.getElementById('installLaterBtn');
     const manualMsg = document.getElementById('installManualMsg');
     const userInstallKey = 'ateliko-install-assistant-v4-{{ $user->id }}';
+    const userInstallPromptKey = userInstallKey + '-prompted';
     let deferredInstallPrompt = null;
 
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     const hasBlockingModal = !!document.getElementById('modalBlockedEmployee') || @json((bool) ($subModalData['blocked'] ?? false));
+    const isInstallDone = () => isStandalone || localStorage.getItem(userInstallKey) === 'installed';
     const hideSidebarInstallButton = () => {
         if (sidebarInstallBox) sidebarInstallBox.style.display = 'none';
     };
     const markInstalled = () => {
         localStorage.setItem(userInstallKey, 'installed');
+        localStorage.setItem(userInstallPromptKey, '1');
         hideSidebarInstallButton();
     };
 
-    if (sidebarInstallBox && (isStandalone || localStorage.getItem(userInstallKey) === 'installed')) {
+    if (sidebarInstallBox && isInstallDone()) {
         hideSidebarInstallButton();
     }
 
@@ -639,15 +729,18 @@
 
     laterBtn?.addEventListener('click', () => {});
 
-    function showInstallAssistant() {
-        if (!installModalEl || isStandalone || hasBlockingModal) return;
-        if (localStorage.getItem(userInstallKey) === 'done') return;
+    function showInstallAssistant(force = false) {
+        if (!installModalEl || isInstallDone() || hasBlockingModal) return;
+        if (!force && localStorage.getItem(userInstallPromptKey) === '1') return;
         if (document.querySelector('.modal.show')) return;
+        localStorage.setItem(userInstallPromptKey, '1');
         bootstrap.Modal.getOrCreateInstance(installModalEl).show();
     }
 
     window.addEventListener('load', () => {
-        // Le bouton permanent dans la sidebar reste la source fiable d'ouverture.
+        // Première proposition automatique; le bouton sidebar reste disponible tant que l'app n'est pas installée.
+        setTimeout(showInstallAssistant, 600);
+
         document.querySelectorAll('.modal').forEach(modal => {
             if (modal !== installModalEl) {
                 modal.addEventListener('hidden.bs.modal', () => setTimeout(showInstallAssistant, 250), { once: true });

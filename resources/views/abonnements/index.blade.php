@@ -177,6 +177,9 @@
                                     <button type="button" class="btn btn-primary btn-sm flex-fill cam-shoot">
                                         <i class="bx bx-camera me-1"></i>Capturer
                                     </button>
+                                    <button type="button" class="btn btn-outline-warning btn-sm cam-flip" title="Changer de caméra (avant/arrière)">
+                                        <i class="bx bx-revision"></i>
+                                    </button>
                                     <button type="button" class="btn btn-outline-secondary btn-sm flex-fill cam-redo" style="display:none">
                                         <i class="bx bx-refresh me-1"></i>Reprendre
                                     </button>

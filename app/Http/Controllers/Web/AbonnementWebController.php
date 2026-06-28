@@ -100,7 +100,7 @@ class AbonnementWebController extends Controller
     {
         $blockedLogin = $request->session()->get('ateliko_blocked_login');
         if (!$blockedLogin || ($blockedLogin['role'] ?? '') !== 'PROPRIETAIRE') {
-            return redirect()->route('login')->withErrors(['email' => 'Session invalide. Veuillez vous reconnecter.']);
+            return redirect()->route('login')->withErrors(['telephone' => 'Session invalide. Veuillez vous reconnecter.']);
         }
 
         $request->validate([

@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str as SupportStr;
 
 class AuthWebController extends Controller
 {
@@ -26,8 +28,7 @@ class AuthWebController extends Controller
     public function login(Request $request)
     {
         $rawPassword = (string) $request->input('password');
-        $rawIdentifier = trim((string) $request->input('email'));
-        $identifier = mb_strtolower($rawIdentifier);
+        $rawIdentifier = trim((string) $request->input('telephone'));
         $phoneDigits = preg_replace('/\D+/', '', preg_replace('/^00/', '+', $rawIdentifier));
 
         // Les numéros maliens peuvent être saisis en local ou avec l'indicatif +223.
@@ -42,39 +43,46 @@ class AuthWebController extends Controller
             $localPhone ? '223' . $localPhone : null,
         ])));
 
-        $request->merge([
-            'email' => $identifier,
-            'password' => trim($rawPassword),
-        ]);
+        $request->merge(['telephone' => $rawIdentifier, 'password' => trim($rawPassword)]);
 
         $request->validate([
-            'email' => 'required|string|max:150',
+            'telephone' => 'required|string|max:30',
             'password' => 'required',
         ]);
 
-        $utilisateur = Utilisateur::where(function ($query) use ($identifier, $phoneCandidates) {
-            $query->whereRaw('LOWER(email) = ?', [$identifier]);
-            if ($phoneCandidates !== []) {
-                $query->orWhereIn('telephone', $phoneCandidates);
-            }
-        })->first();
+        $throttleKey = $this->loginThrottleKey($rawIdentifier, $request->ip());
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return back()->withErrors([
+                'telephone' => 'Trop de tentatives. Réessayez dans ' . ceil($seconds / 60) . ' minute(s).',
+            ])->withInput();
+        }
+
+        $utilisateur = Utilisateur::whereIn('telephone', $phoneCandidates)->first();
         $passwordMatches = $utilisateur
             && Hash::check($request->password, $utilisateur->mot_de_passe);
 
         if (!$passwordMatches) {
+            RateLimiter::hit($throttleKey, 120);
+
             Log::warning('Échec de connexion web', [
-                'identifiant' => $identifier,
+                'telephone' => $rawIdentifier,
                 'utilisateur_trouve' => (bool) $utilisateur,
                 'longueur_mot_de_passe' => mb_strlen($request->password),
                 'espaces_supprimes' => strlen($rawPassword) !== strlen($request->password),
                 'adresse_ip' => $request->ip(),
             ]);
 
-            return back()->withErrors(['email' => 'Identifiants incorrects'])->withInput();
+            $attemptsLeft = max(0, 5 - RateLimiter::attempts($throttleKey));
+            $message = $attemptsLeft > 0
+                ? 'Numéro ou mot de passe incorrect. Il reste ' . $attemptsLeft . ' tentative(s).'
+                : 'Trop de tentatives. Réessayez dans 2 minute(s).';
+
+            return back()->withErrors(['telephone' => $message])->withInput();
         }
 
         if (!$utilisateur->actif) {
-            return back()->withErrors(['email' => 'Compte désactivé. Contactez votre administrateur.'])->withInput();
+            return back()->withErrors(['telephone' => 'Compte désactivé. Contactez votre administrateur.'])->withInput();
         }
 
         // ── Vérification abonnement AVANT la connexion ──────────────────
@@ -111,13 +119,15 @@ class AuthWebController extends Controller
                     $request->session()->flash('login_blocked', 'employee');
                 }
 
-                return back()->withInput(['email' => $request->input('email')]);
+                return back()->withInput(['telephone' => $request->input('telephone')]);
             }
         }
         // ────────────────────────────────────────────────────────────────
 
+        RateLimiter::clear($throttleKey);
         Auth::guard('web')->login($utilisateur, $request->boolean('remember'));
         $request->session()->regenerate();
+        $request->session()->flash('show_install_assistant', true);
 
         ActivityLog::create([
             'utilisateur_id'  => $utilisateur->id,
@@ -150,5 +160,12 @@ class AuthWebController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect()->route('login');
+    }
+
+    private function loginThrottleKey(string $telephone, string $ip): string
+    {
+        $digits = preg_replace('/\D+/', '', $telephone) ?: $telephone;
+
+        return SupportStr::lower('login:' . $digits . '|' . $ip);
     }
 }

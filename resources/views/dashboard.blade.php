@@ -530,6 +530,29 @@
     {{-- Dashboard SECRETAIRE / PROPRIETAIRE --}}
     {{-- ========================================== --}}
     @else
+    {{-- Actions rapides --}}
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        @if($user->hasPermission('CLIENT_CREER'))
+        <a href="{{ route('clients.create') }}" class="btn btn-primary">
+            <i class="bx bx-user-plus me-2"></i>Nouveau client
+        </a>
+        @endif
+        @if($user->hasPermission('RENDEZ_VOUS_CREER'))
+        <a href="{{ route('rendezvous.index') }}" class="btn btn-info text-white">
+            <i class="bx bx-calendar-plus me-2"></i>Nouveau RDV
+        </a>
+        @endif
+        @if($user->hasPermission('AFFECTATION_CREER'))
+        <a href="{{ route('affectations.create') }}" class="btn btn-warning text-dark">
+            <i class="bx bx-user-check me-2"></i>Affecter
+        </a>
+        @endif
+        @if($user->hasPermission('PAIEMENT_CREER'))
+        <a href="{{ route('paiements.index') }}" class="btn btn-success">
+            <i class="bx bx-money me-2"></i>Paiements
+        </a>
+        @endif
+    </div>
     <div class="row g-4 mb-4">
         @if($user->isSecretaire())
             {{-- Vue Secrétaire --}}

@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>ATELIKO - Connexion</title>
-    <link rel="icon" href="{{ asset('assets/images/favicon-32x32.png') }}" type="image/png">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/images/ateliko-icon-32.png') }}?v=4">
+    <link rel="shortcut icon" href="{{ asset('assets/images/ateliko-icon-32.png') }}?v=4">
+    <link rel="apple-touch-icon" sizes="192x192" href="{{ asset('assets/images/ateliko-icon-192.png') }}?v=4">
+    <link rel="manifest" href="{{ asset('manifest.json') }}?v=4">
+    <meta name="theme-color" content="#0d6efd">
     <link href="{{ asset('assets/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('assets/css/icons.css') }}" rel="stylesheet">
     <link href="{{ asset('assets/css/index.css') }}" rel="stylesheet">
@@ -37,7 +41,7 @@
                     <img src="{{ asset('assets/images/logo_ateliko.png') }}" style="width:40%;max-width:250px;height:auto;object-fit:contain" alt="Logo ATELIKO">
                     <h3 class="logo-text">ATELIKO</h3>
                 </div>
-                <div class="login-separater text-center mb-4"><span>CONNEXION AVEC EMAIL OU TÉLÉPHONE</span></div>
+                <div class="login-separater text-center mb-4"><span>CONNEXION AVEC NUMÉRO DE TÉLÉPHONE</span></div>
 
                 @if(session('success'))
                     <div class="alert alert-success py-2 mb-3"><i class="bx bx-check-circle me-1"></i>{{ session('success') }}</div>
@@ -50,8 +54,8 @@
                     <form class="row g-3" action="{{ route('login.post') }}" method="POST">
                         @csrf
                         <div class="col-12">
-                            <label for="inputEmailAddress" class="form-label">Email ou téléphone</label>
-                            <input id="inputEmailAddress" type="text" name="email" class="form-control @error('email') is-invalid @enderror" placeholder="Email ou numéro de téléphone" autocomplete="username" value="{{ old('email') }}" required autofocus>
+                            <label for="inputPhone" class="form-label">Numéro de téléphone</label>
+                            <input id="inputPhone" type="tel" name="telephone" class="form-control @error('telephone') is-invalid @enderror" placeholder="Ex : 74 74 56 69" inputmode="tel" autocomplete="tel" value="{{ old('telephone') }}" required autofocus>
                         </div>
                         <div class="col-12">
                             <label for="inputChoosePassword" class="form-label">Mot de passe</label>
@@ -210,6 +214,9 @@
                                             <button type="button" class="btn btn-primary btn-sm flex-fill cam-shoot">
                                                 <i class="bx bx-camera me-1"></i>Capturer
                                             </button>
+                                            <button type="button" class="btn btn-outline-warning btn-sm cam-flip" title="Changer de caméra (avant/arrière)">
+                                                <i class="bx bx-revision"></i>
+                                            </button>
                                             <button type="button" class="btn btn-outline-secondary btn-sm flex-fill cam-redo" style="display:none">
                                                 <i class="bx bx-refresh me-1"></i>Reprendre
                                             </button>
@@ -340,13 +347,16 @@
 
                 if (!fileInput || !video) return;
 
+                var facingMode = 'environment';
+                var flipBtn = w.querySelector('.cam-flip');
+
                 function stopStream() {
                     if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
                 }
                 function startStream() {
                     msg.textContent = 'Accès à la caméra…';
                     navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
+                        video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 } }
                     }).then(function(s) {
                         stream = s; video.srcObject = s;
                         video.style.display = 'block'; snap.style.display = 'none';
@@ -355,6 +365,13 @@
                     }).catch(function(err) {
                         msg.textContent = '⚠ Caméra inaccessible : ' + (err.message || err.name);
                         msg.className = 'cam-msg small text-danger';
+                    });
+                }
+                if (flipBtn) {
+                    flipBtn.addEventListener('click', function() {
+                        facingMode = facingMode === 'environment' ? 'user' : 'environment';
+                        stopStream();
+                        startStream();
                     });
                 }
 

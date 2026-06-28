@@ -18,11 +18,14 @@ class PaiementController extends Controller
         $request->validate([
             'clientId' => 'required|uuid|exists:clients,id',
             'montant' => 'required|numeric|min:0.01',
-            'moyen' => 'in:ESPECES,MOBILE_MONEY',
+            'moyen' => 'nullable|in:ESPECES,MOBILE_MONEY,VIREMENT,CARTE',
         ]);
 
         $user = $request->user();
-        $client = Client::with(['mesures', 'paiements'])->findOrFail($request->clientId);
+        $client = Client::with(['mesures', 'paiements'])
+            ->where('atelier_id', $user->atelier_id)
+            ->when($user->isTailleur(), fn ($query) => $query->whereHas('affectations', fn ($q) => $q->where('tailleur_id', $user->id)))
+            ->findOrFail($request->clientId);
 
         $montantTotal = $client->mesures->sum('prix');
         $montantPaye = $client->paiements->where('type_paiement', 'CLIENT')->sum('montant');
@@ -36,6 +39,8 @@ class PaiementController extends Controller
             'id' => Str::uuid(),
             'montant' => $request->montant,
             'moyen' => $request->moyen ?? 'ESPECES',
+            'reference' => $request->reference,
+            'date_paiement' => $request->datePaiement ?? now(),
             'type_paiement' => 'CLIENT',
             'client_id' => $request->clientId,
             'atelier_id' => $user->atelier_id,
@@ -54,21 +59,32 @@ class PaiementController extends Controller
                 $q->whereMonth('date_paiement', $request->month)
                     ->whereYear('date_paiement', $request->year);
             }
-        }])->findOrFail($clientId);
+        }])
+            ->where('atelier_id', $user->atelier_id)
+            ->when($user->isTailleur(), fn ($query) => $query->whereHas('affectations', fn ($q) => $q->where('tailleur_id', $user->id)))
+            ->findOrFail($clientId);
 
         $montantTotal = $client->mesures->sum('prix');
         $montantPaye = Paiement::where('client_id', $clientId)->where('type_paiement', 'CLIENT')->sum('montant');
+        $montantRestant = max(0, $montantTotal - $montantPaye);
 
         return response()->json([
             'clientId' => $client->id,
             'clientNom' => $client->prenom . ' ' . $client->nom,
+            'nom' => $client->nom,
+            'prenom' => $client->prenom,
             'contact' => $client->contact,
+            'telephone' => $client->contact,
             'photo' => $client->photo,
             'montantTotal' => $montantTotal,
+            'prixTotal' => $montantTotal,
+            'totalDu' => $montantTotal,
             'montantPaye' => $montantPaye,
-            'montantRestant' => max(0, $montantTotal - $montantPaye),
+            'montantRestant' => $montantRestant,
+            'resteAPayer' => $montantRestant,
             'nbMesures' => $client->mesures->count(),
             'statut' => $montantPaye >= $montantTotal && $montantTotal > 0 ? 'SOLDE' : 'EN_ATTENTE',
+            'statutPaiement' => $montantTotal > 0 && $montantRestant <= 0 ? 'PAYE' : ($montantPaye > 0 ? 'PARTIEL' : 'EN_ATTENTE'),
             'paiements' => $client->paiements->map(fn($p) => $this->formatPaiement($p)),
         ]);
     }
@@ -80,17 +96,20 @@ class PaiementController extends Controller
         $request->validate([
             'tailleurId' => 'required|uuid|exists:utilisateurs,id',
             'montant' => 'required|numeric|min:0.01',
-            'moyen' => 'in:ESPECES,MOBILE_MONEY',
+            'moyen' => 'nullable|in:ESPECES,MOBILE_MONEY,VIREMENT,CARTE',
         ]);
 
         $user = $request->user();
+        $tailleur = Utilisateur::where('atelier_id', $user->atelier_id)->where('role', 'TAILLEUR')->findOrFail($request->tailleurId);
 
         $paiement = Paiement::create([
             'id' => Str::uuid(),
             'montant' => $request->montant,
             'moyen' => $request->moyen ?? 'ESPECES',
+            'reference' => $request->reference,
+            'date_paiement' => $request->datePaiement ?? now(),
             'type_paiement' => 'TAILLEUR',
-            'tailleur_id' => $request->tailleurId,
+            'tailleur_id' => $tailleur->id,
             'atelier_id' => $user->atelier_id,
             'note' => $request->note,
         ]);
@@ -100,9 +119,12 @@ class PaiementController extends Controller
 
     public function getPaiementsTailleur(Request $request, $tailleurId)
     {
-        $tailleur = Utilisateur::findOrFail($tailleurId);
+        $user = $request->user();
+        $tailleur = Utilisateur::where('atelier_id', $user->atelier_id)->findOrFail($tailleurId);
 
-        $paiementsQuery = Paiement::where('tailleur_id', $tailleurId)->where('type_paiement', 'TAILLEUR');
+        $paiementsQuery = Paiement::where('atelier_id', $user->atelier_id)
+            ->where('tailleur_id', $tailleurId)
+            ->where('type_paiement', 'TAILLEUR');
 
         if ($request->has('month') && $request->has('year')) {
             $paiementsQuery->whereMonth('date_paiement', $request->month)
@@ -111,18 +133,27 @@ class PaiementController extends Controller
 
         $paiements = $paiementsQuery->get();
 
-        $totalDu = \App\Models\Affectation::where('tailleur_id', $tailleurId)
+        $totalDu = \App\Models\Affectation::where('atelier_id', $user->atelier_id)
+            ->where('tailleur_id', $tailleurId)
             ->whereIn('statut', ['TERMINE', 'VALIDE'])
             ->sum('prix_tailleur');
-        $totalPaye = Paiement::where('tailleur_id', $tailleurId)->where('type_paiement', 'TAILLEUR')->sum('montant');
+        $totalPaye = Paiement::where('atelier_id', $user->atelier_id)->where('tailleur_id', $tailleurId)->where('type_paiement', 'TAILLEUR')->sum('montant');
+        $totalRestant = max(0, $totalDu - $totalPaye);
 
         return response()->json([
             'tailleurId' => $tailleur->id,
             'tailleurNom' => $tailleur->prenom . ' ' . $tailleur->nom,
+            'nom' => $tailleur->nom,
+            'prenom' => $tailleur->prenom,
+            'contact' => $tailleur->telephone,
             'totalDu' => $totalDu,
+            'montantTotal' => $totalDu,
             'totalPaye' => $totalPaye,
-            'totalRestant' => max(0, $totalDu - $totalPaye),
+            'montantPaye' => $totalPaye,
+            'totalRestant' => $totalRestant,
+            'resteAPayer' => $totalRestant,
             'statut' => $totalPaye >= $totalDu && $totalDu > 0 ? 'SOLDE' : 'EN_ATTENTE',
+            'statutPaiement' => $totalDu > 0 && $totalRestant <= 0 ? 'PAYE' : ($totalPaye > 0 ? 'PARTIEL' : 'EN_ATTENTE'),
             'paiements' => $paiements->map(fn($p) => $this->formatPaiement($p)),
         ]);
     }
@@ -175,21 +206,80 @@ class PaiementController extends Controller
     {
         $atelierId = $request->query('atelierId', $request->user()->atelier_id);
         $term = $request->query('searchTerm', '');
+        $statutPaiement = $request->query('statutPaiement');
 
+        $user = $request->user();
         $clients = Client::where('atelier_id', $atelierId)
+            ->when($user->isTailleur(), fn ($query) => $query->whereHas('affectations', fn ($q) => $q->where('tailleur_id', $user->id)))
             ->where(fn($q) => $q->where('nom', 'like', "%$term%")->orWhere('prenom', 'like', "%$term%"))
             ->with(['mesures', 'paiements'])
             ->get()
-            ->map(fn($c) => [
-                'clientId' => $c->id,
-                'clientNom' => $c->prenom . ' ' . $c->nom,
-                'contact' => $c->contact,
-                'montantTotal' => $c->mesures->sum('prix'),
-                'montantPaye' => $c->paiements->where('type_paiement', 'CLIENT')->sum('montant'),
-                'montantRestant' => max(0, $c->mesures->sum('prix') - $c->paiements->where('type_paiement', 'CLIENT')->sum('montant')),
-            ]);
+            ->map(function ($c) {
+                $montantTotal = $c->mesures->sum('prix');
+                $montantPaye = $c->paiements->where('type_paiement', 'CLIENT')->sum('montant');
+                $reste = max(0, $montantTotal - $montantPaye);
+                $statutPaiement = $montantTotal > 0 && $reste <= 0 ? 'PAYE' : ($montantPaye > 0 ? 'PARTIEL' : 'EN_ATTENTE');
+
+                return [
+                    'clientId' => $c->id,
+                    'id' => $c->id,
+                    'clientNom' => $c->prenom . ' ' . $c->nom,
+                    'nom' => $c->nom,
+                    'prenom' => $c->prenom,
+                    'contact' => $c->contact,
+                    'telephone' => $c->contact,
+                    'montantTotal' => $montantTotal,
+                    'prixTotal' => $montantTotal,
+                    'totalDu' => $montantTotal,
+                    'montantPaye' => $montantPaye,
+                    'montantRestant' => $reste,
+                    'resteAPayer' => $reste,
+                    'statutPaiement' => $statutPaiement,
+                ];
+            })
+            ->when($statutPaiement, fn ($items) => $items->where('statutPaiement', $statutPaiement)->values());
 
         return response()->json($clients);
+    }
+
+    public function rechercheTailleurs(Request $request)
+    {
+        abort_if($request->user()->isTailleur(), 403);
+        $atelierId = $request->query('atelierId', $request->user()->atelier_id);
+        $term = $request->query('searchTerm', '');
+        $statutPaiement = $request->query('statutPaiement');
+
+        $tailleurs = Utilisateur::where('atelier_id', $atelierId)
+            ->where('role', 'TAILLEUR')
+            ->where(fn ($q) => $q->where('nom', 'like', "%$term%")->orWhere('prenom', 'like', "%$term%")->orWhere('telephone', 'like', "%$term%"))
+            ->with(['atelier'])
+            ->get()
+            ->map(function ($t) use ($atelierId) {
+                $totalDu = \App\Models\Affectation::where('atelier_id', $atelierId)->where('tailleur_id', $t->id)->whereIn('statut', ['TERMINE', 'VALIDE'])->sum('prix_tailleur');
+                $totalPaye = Paiement::where('atelier_id', $atelierId)->where('tailleur_id', $t->id)->where('type_paiement', 'TAILLEUR')->sum('montant');
+                $reste = max(0, $totalDu - $totalPaye);
+                $statutPaiement = $totalDu > 0 && $reste <= 0 ? 'PAYE' : ($totalPaye > 0 ? 'PARTIEL' : 'EN_ATTENTE');
+
+                return [
+                    'tailleurId' => $t->id,
+                    'id' => $t->id,
+                    'tailleurNom' => trim($t->prenom . ' ' . $t->nom),
+                    'nom' => $t->nom,
+                    'prenom' => $t->prenom,
+                    'contact' => $t->telephone,
+                    'telephone' => $t->telephone,
+                    'montantTotal' => $totalDu,
+                    'totalDu' => $totalDu,
+                    'montantPaye' => $totalPaye,
+                    'totalPaye' => $totalPaye,
+                    'montantRestant' => $reste,
+                    'resteAPayer' => $reste,
+                    'statutPaiement' => $statutPaiement,
+                ];
+            })
+            ->when($statutPaiement, fn ($items) => $items->where('statutPaiement', $statutPaiement)->values());
+
+        return response()->json($tailleurs);
     }
 
     // ===== REÇUS =====
@@ -211,14 +301,26 @@ class PaiementController extends Controller
         $montantPaye = $client->paiements->where('type_paiement', 'CLIENT')->sum('montant');
 
         return response()->json([
-            'clientNom' => $client->prenom . ' ' . $client->nom,
+            'clientId' => $client->id,
+            'clientNom' => $client->nom,
+            'clientPrenom' => $client->prenom,
+            'beneficiaire' => trim($client->prenom . ' ' . $client->nom),
             'clientContact' => $client->contact,
             'montantTotal' => $montantTotal,
+            'totalDu' => $montantTotal,
+            'montant' => $montantPaye,
             'avance' => $montantPaye,
+            'avancePaye' => $montantPaye,
             'montantRestant' => max(0, $montantTotal - $montantPaye),
+            'resteAPayer' => max(0, $montantTotal - $montantPaye),
             'nbModeles' => $client->mesures->count(),
+            'nombreModeles' => $client->mesures->count(),
             'date' => now()->toDateString(),
+            'datePaiement' => now(),
+            'dateFormatted' => now()->format('d/m/Y H:i'),
             'statut' => $montantPaye >= $montantTotal && $montantTotal > 0 ? 'SOLDE' : 'EN_ATTENTE',
+            'atelierNom' => $client->atelier?->nom,
+            'reference' => 'CLI-' . strtoupper(substr($client->id, 0, 8)),
         ]);
     }
 
@@ -241,16 +343,24 @@ class PaiementController extends Controller
 
         return [
             'paiementId' => $p->id,
+            'id' => $p->id,
             'reference' => $p->reference,
             'clientNom' => $client ? $client->prenom . ' ' . $client->nom : null,
+            'clientPrenom' => $client?->prenom,
             'clientContact' => $client?->contact,
             'montant' => $p->montant,
             'montantTotal' => $montantTotal,
+            'totalDu' => $montantTotal,
             'avance' => $montantPaye,
+            'avancePaye' => $montantPaye,
             'montantRestant' => max(0, $montantTotal - $montantPaye),
+            'resteAPayer' => max(0, $montantTotal - $montantPaye),
             'nbModeles' => $client ? $client->mesures->count() : 0,
+            'nombreModeles' => $client ? $client->mesures->count() : 0,
             'moyen' => $p->moyen,
+            'moyenPaiement' => $p->moyen,
             'date' => $p->date_paiement,
+            'datePaiement' => $p->date_paiement,
             'atelierNom' => $p->atelier?->nom,
         ];
     }
@@ -259,11 +369,15 @@ class PaiementController extends Controller
     {
         return [
             'paiementId' => $p->id,
+            'id' => $p->id,
             'reference' => $p->reference,
             'tailleurNom' => $p->tailleur ? $p->tailleur->prenom . ' ' . $p->tailleur->nom : null,
+            'tailleurPrenom' => $p->tailleur?->prenom,
             'montant' => $p->montant,
             'moyen' => $p->moyen,
+            'moyenPaiement' => $p->moyen,
             'date' => $p->date_paiement,
+            'datePaiement' => $p->date_paiement,
             'atelierNom' => $p->atelier?->nom,
         ];
     }

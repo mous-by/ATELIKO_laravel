@@ -8,8 +8,17 @@
         <div class="card text-center">
             <div class="card-body pt-4">
                 @if($user->photo_path)
-                    <img src="{{ asset('storage/' . $user->photo_path) }}" class="rounded-circle mb-3"
+                    <img src="{{ asset('storage/' . $user->photo_path) }}" class="rounded-circle mb-2"
                          style="width: 100px; height: 100px; object-fit: cover;">
+                    <div class="mb-3">
+                        <form action="{{ route('profile.photo.delete') }}" method="POST"
+                              onsubmit="return confirm('Supprimer la photo de profil ?')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bx bx-trash me-1"></i>Supprimer la photo
+                            </button>
+                        </form>
+                    </div>
                 @else
                     <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3"
                          style="width: 100px; height: 100px; font-size: 2rem;">
@@ -74,7 +83,8 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Nouveau mot de passe</label>
-                            <input type="password" name="new_password" class="form-control" minlength="6" required>
+                            <input type="password" name="new_password" class="form-control" minlength="4" placeholder="Ex : 1234" required>
+                            <div class="form-text">Minimum 4 caractères.</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Confirmer</label>

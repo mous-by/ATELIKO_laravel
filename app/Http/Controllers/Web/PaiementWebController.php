@@ -30,6 +30,8 @@ class PaiementWebController extends Controller
                 'montantTotal' => $c->mesures->sum('prix'),
                 'montantPaye' => $c->paiements->where('type_paiement', 'CLIENT')->sum('montant'),
                 'montantRestant' => max(0, $c->mesures->sum('prix') - $c->paiements->where('type_paiement', 'CLIENT')->sum('montant')),
+                'nbMesuresSansLivraison' => $c->mesures->whereNull('date_livraison')->count(),
+                'estSolde' => $c->mesures->sum('prix') > 0 && $c->paiements->where('type_paiement', 'CLIENT')->sum('montant') >= $c->mesures->sum('prix'),
             ]);
 
         $tailleurs = Utilisateur::where('atelier_id', $atelierId)->where('role', 'TAILLEUR')->get()
@@ -48,9 +50,9 @@ class PaiementWebController extends Controller
         $mesuresMois = \App\Models\Mesure::where('atelier_id', $atelierId)
             ->whereBetween('created_at', [$monthStart, $monthEnd]);
         $synthese = [
-            'encaissementsMois' => Paiement::where('atelier_id', $atelierId)->where('type_paiement', 'CLIENT')->whereBetween('created_at', [$monthStart, $monthEnd])->sum('montant'),
+            'encaissementsMois' => Paiement::where('atelier_id', $atelierId)->where('type_paiement', 'CLIENT')->whereBetween('date_paiement', [$monthStart, $monthEnd])->sum('montant'),
             'nombreModeles' => (clone $mesuresMois)->count(),
-            'nombreSorties' => Affectation::where('atelier_id', $atelierId)->whereIn('statut', ['TERMINE','VALIDE'])->whereBetween('date_fin_reelle', [$monthStart, $monthEnd])->count(),
+            'nombreSorties' => \App\Models\Mesure::where('atelier_id', $atelierId)->whereBetween('date_livraison', [$monthStart, $monthEnd])->count(),
             'montantModeles' => (clone $mesuresMois)->sum('prix'),
         ];
 
@@ -62,7 +64,7 @@ class PaiementWebController extends Controller
         $request->validate(['client_id' => 'required|uuid', 'montant' => 'required|numeric|min:0.01']);
         $user = Auth::user();
 
-        Paiement::create([
+        $paiement = Paiement::create([
             'id' => Str::uuid(),
             'montant' => $request->montant,
             'moyen' => $request->moyen ?? 'ESPECES',
@@ -71,6 +73,31 @@ class PaiementWebController extends Controller
             'atelier_id' => $user->atelier_id,
             'note' => $request->note,
         ]);
+
+        if ($request->expectsJson()) {
+            $client = Client::with(['mesures', 'paiements'])->findOrFail($request->client_id);
+            $totalDu = $client->mesures->sum('prix');
+            $totalPaye = $client->paiements->where('type_paiement', 'CLIENT')->sum('montant');
+            $atelierNom = $user->atelier?->nom ?? 'Atelier';
+            return response()->json([
+                'message' => 'Paiement enregistré avec succès',
+                'receipt' => [
+                    'typeTicket' => 'PAIEMENT',
+                    'statut' => 'Reçu client',
+                    'reference' => 'PAY-' . strtoupper(substr($paiement->id, 0, 8)),
+                    'dateFormatted' => now()->format('d/m/Y H:i'),
+                    'beneficiaire' => trim(($client->prenom ?? '') . ' ' . ($client->nom ?? '')),
+                    'contact' => $client->contact ?? '',
+                    'moyenPaiement' => strtoupper($request->moyen ?? 'ESPECES'),
+                    'montant' => (float) $request->montant,
+                    'totalDu' => (float) $totalDu,
+                    'avancePaye' => (float) $totalPaye,
+                    'resteAPayer' => (float) max(0, $totalDu - $totalPaye),
+                    'atelierNom' => $atelierNom,
+                    'messageMarketing' => 'Merci pour votre confiance en ' . $atelierNom . ' !',
+                ],
+            ]);
+        }
 
         return redirect()->route('paiements.index', ['tab' => 'clients'])->with('success', 'Paiement client enregistré');
     }
@@ -97,9 +124,52 @@ class PaiementWebController extends Controller
     {
         $client = Client::with(['mesures', 'paiements', 'atelier'])->findOrFail($clientId);
         $montantTotal = $client->mesures->sum('prix');
-        $montantPaye = $client->paiements->where('type_paiement', 'CLIENT')->sum('montant');
+        $montantPaye  = $client->paiements->where('type_paiement', 'CLIENT')->sum('montant');
+
+        if (request()->expectsJson()) {
+            $atelierNom = $client->atelier?->nom ?? 'Atelier';
+            return response()->json([
+                'receipt' => [
+                    'typeTicket'       => 'PAIEMENT',
+                    'statut'           => 'Reçu client',
+                    'reference'        => 'CLI-' . strtoupper(substr($clientId, 0, 8)),
+                    'dateFormatted'    => now()->format('d/m/Y H:i'),
+                    'beneficiaire'     => trim(($client->prenom ?? '') . ' ' . ($client->nom ?? '')),
+                    'contact'          => $client->contact ?? '',
+                    'nombreModeles'    => $client->mesures->count(),
+                    'montant'          => (float) $montantPaye,
+                    'totalDu'          => (float) $montantTotal,
+                    'avancePaye'       => (float) $montantPaye,
+                    'resteAPayer'      => (float) max(0, $montantTotal - $montantPaye),
+                    'atelierNom'       => $atelierNom,
+                    'messageMarketing' => 'Merci pour votre confiance chez ' . $atelierNom . ' !',
+                ],
+            ]);
+        }
 
         return view('paiements.recu-client', compact('client', 'montantTotal', 'montantPaye'));
+    }
+
+    public function enregistrerSortie($clientId)
+    {
+        $user = Auth::user();
+        // Sécurité : le client doit appartenir à cet atelier
+        Client::where('atelier_id', $user->atelier_id)->findOrFail($clientId);
+
+        $nb = \App\Models\Mesure::where('client_id', $clientId)
+            ->where('atelier_id', $user->atelier_id)
+            ->whereNull('date_livraison')
+            ->update(['date_livraison' => now()]);
+
+        $total = \App\Models\Mesure::where('atelier_id', $user->atelier_id)
+            ->whereBetween('date_livraison', [now()->startOfMonth(), now()->endOfMonth()])
+            ->count();
+
+        return response()->json([
+            'message' => $nb . ' habit(s) marqué(s) comme livré(s)',
+            'nbLivres' => $nb,
+            'nouvellesTotalSorties' => $total,
+        ]);
     }
 
     public function recuTailleur($tailleurId)

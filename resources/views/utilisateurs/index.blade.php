@@ -100,19 +100,19 @@
                     <div class="row g-3">
                         <div class="col-6">
                             <label class="form-label fw-medium">Prénom *</label>
-                            <input type="text" name="prenom" class="form-control" required>
+                            <input type="text" name="prenom" class="form-control" value="{{ old('prenom') }}" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label fw-medium">Nom *</label>
-                            <input type="text" name="nom" class="form-control" required>
+                            <input type="text" name="nom" class="form-control" value="{{ old('nom') }}" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-medium">Email *</label>
-                            <input type="email" name="email" class="form-control" required>
+                            <input type="email" name="email" class="form-control" value="{{ old('email') }}" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-medium">Téléphone</label>
-                            <input type="text" name="telephone" class="form-control" placeholder="77XXXXXXX">
+                            <input type="text" name="telephone" class="form-control" value="{{ old('telephone') }}" placeholder="77XXXXXXX">
                         </div>
                         @if(Auth::user()->isSuperAdmin())
                         <div class="col-12">
@@ -120,7 +120,7 @@
                             <select name="atelier_id" class="form-select" required>
                                 <option value="">-- Choisir un atelier --</option>
                                 @foreach($ateliers as $atelier)
-                                <option value="{{ $atelier->id }}">{{ $atelier->nom }}</option>
+                                <option value="{{ $atelier->id }}" @selected(old('atelier_id') === $atelier->id)>{{ $atelier->nom }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -129,17 +129,18 @@
                             <label class="form-label fw-medium">Rôle *</label>
                             <select name="role" class="form-select" required>
                                 @foreach($roles as $role)
-                                <option value="{{ $role }}">{{ $role }}</option>
+                                <option value="{{ $role }}" @selected(old('role') === $role)>{{ $role }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-6">
                             <label class="form-label fw-medium">Mot de passe *</label>
-                            <input type="password" name="mot_de_passe" class="form-control" minlength="6" required>
+                            <input type="password" name="mot_de_passe" class="form-control" minlength="4" placeholder="Ex : 1234" required>
+                            <div class="form-text">Minimum 4 caractères. Exemple simple accepté : 1234.</div>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-medium">Confirmer le mot de passe *</label>
-                            <input type="password" name="mot_de_passe_confirmation" class="form-control" required>
+                            <input type="password" name="mot_de_passe_confirmation" class="form-control" minlength="4" required>
                         </div>
                     </div>
                 </div>
@@ -152,3 +153,14 @@
     </div>
 </div>
 @endsection
+
+@if($errors->any())
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var el = document.getElementById('modalNouvelUtilisateur');
+    if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+});
+</script>
+@endpush
+@endif

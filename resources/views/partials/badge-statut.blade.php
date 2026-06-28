@@ -8,6 +8,7 @@ $classes = [
     'PLANIFIE' => 'bg-secondary',
     'CONFIRME' => 'bg-primary',
     'SOLDE' => 'bg-success',
+    'PRET' => 'bg-success',
 ];
 $labels = [
     'EN_ATTENTE' => 'En attente',
@@ -18,6 +19,7 @@ $labels = [
     'PLANIFIE' => 'Planifié',
     'CONFIRME' => 'Confirmé',
     'SOLDE' => 'Soldé',
+    'PRET' => '✓ Prêt à récupérer',
 ];
 $cls = $classes[$statut] ?? 'bg-secondary';
 $lbl = $labels[$statut] ?? $statut;

@@ -29,20 +29,27 @@ class UtilisateurController extends Controller
         $request->validate([
             'prenom' => 'required|string|min:2|max:50',
             'nom' => 'required|string|min:2|max:50',
-            'email' => 'required|email|unique:utilisateurs,email',
-            'mot_de_passe' => 'required|min:6',
+            'email' => 'nullable|email|unique:utilisateurs,email',
+            'telephone' => 'required|string|max:30|unique:utilisateurs,telephone',
+            'mot_de_passe' => 'nullable|min:4',
+            'motdepasse' => 'nullable|min:4',
             'role' => 'required|in:SUPERADMIN,PROPRIETAIRE,SECRETAIRE,TAILLEUR',
         ]);
 
         $user = $request->user();
+        $password = $request->input('mot_de_passe', $request->input('motdepasse'));
+        if (!$password) {
+            return response()->json(['message' => 'Le mot de passe est obligatoire.'], 422);
+        }
+        $email = $request->email ?: $this->generatedEmail($request->telephone);
 
         $utilisateur = Utilisateur::create([
             'id' => Str::uuid(),
             'prenom' => $request->prenom,
             'nom' => $request->nom,
-            'email' => $request->email,
+            'email' => $email,
             'telephone' => $request->telephone,
-            'mot_de_passe' => Hash::make($request->mot_de_passe),
+            'mot_de_passe' => Hash::make($password),
             'role' => $request->role,
             'actif' => true,
             'atelier_id' => $request->atelier_id ?? $user->atelier_id,
@@ -60,6 +67,10 @@ class UtilisateurController extends Controller
     public function update(Request $request, $id)
     {
         $utilisateur = Utilisateur::findOrFail($id);
+
+        $request->validate([
+            'telephone' => 'nullable|string|max:30|unique:utilisateurs,telephone,' . $id,
+        ]);
 
         $utilisateur->update($request->only(['prenom', 'nom', 'telephone', 'role', 'atelier_id']));
 
@@ -118,7 +129,7 @@ class UtilisateurController extends Controller
     {
         $request->validate([
             'currentPassword' => 'required',
-            'newPassword' => 'required|min:6',
+            'newPassword' => 'required|min:4',
             'confirmPassword' => 'required|same:newPassword',
         ]);
 
@@ -185,5 +196,12 @@ class UtilisateurController extends Controller
                 ? $u->permissions->map(fn($p) => ['id' => $p->id, 'code' => $p->code, 'description' => $p->description])
                 : [],
         ];
+    }
+
+    private function generatedEmail(string $telephone): string
+    {
+        $digits = preg_replace('/\D+/', '', $telephone) ?: Str::random(8);
+
+        return 'user-' . $digits . '-' . Str::lower(Str::random(6)) . '@ateliko.local';
     }
 }

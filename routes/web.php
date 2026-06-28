@@ -107,6 +107,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
         Route::put('/{id}', [RendezvousWebController::class, 'update'])->name('update');
         Route::delete('/{id}', [RendezvousWebController::class, 'destroy'])->name('destroy');
         Route::patch('/{id}/statut', [RendezvousWebController::class, 'changerStatut'])->name('statut');
+        Route::patch('/{id}/pret', [RendezvousWebController::class, 'marquerPret'])->name('pret');
     });
 
     // ---- Paiements ----
@@ -116,6 +117,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
         Route::post('/tailleurs', [PaiementWebController::class, 'storeTailleur'])->name('tailleurs.store');
         Route::get('/recu/client/{clientId}', [PaiementWebController::class, 'recuClient'])->name('recu.client');
         Route::get('/recu/tailleur/{tailleurId}', [PaiementWebController::class, 'recuTailleur'])->name('recu.tailleur');
+        Route::post('/clients/{clientId}/sortie', [PaiementWebController::class, 'enregistrerSortie'])->name('clients.sortie');
     });
 
     // ---- Utilisateurs ----
@@ -132,5 +134,6 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     // ---- Profil ----
     Route::get('/profil', [UtilisateurWebController::class, 'profile'])->name('profile');
     Route::put('/profil', [UtilisateurWebController::class, 'updateProfile'])->name('profile.update');
+    Route::delete('/profil/photo', [UtilisateurWebController::class, 'deletePhoto'])->name('profile.photo.delete');
     Route::post('/profil/mot-de-passe', [UtilisateurWebController::class, 'changePassword'])->name('profile.password');
 });

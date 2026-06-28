@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'ATELIKO') - Gestion Atelier de Couture</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/images/favicon-32x32.png') }}?v=2">
-    <link rel="shortcut icon" href="{{ asset('assets/images/favicon-32x32.png') }}?v=2">
-    <link rel="apple-touch-icon" href="{{ asset('assets/images/logo-icon.png') }}?v=2">
-    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/images/ateliko-icon-32.png') }}?v=3">
+    <link rel="shortcut icon" href="{{ asset('assets/images/ateliko-icon-32.png') }}?v=3">
+    <link rel="apple-touch-icon" sizes="192x192" href="{{ asset('assets/images/ateliko-icon-192.png') }}?v=3">
+    <link rel="manifest" href="{{ asset('manifest.json') }}?v=3">
     <meta name="theme-color" content="#0d6efd">
     <link href="{{ asset('assets/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('assets/css/icons.css') }}" rel="stylesheet">
@@ -79,6 +79,36 @@
         html.dark-theme .bg-light{background:#2a2d3e!important}
         html.dark-theme .border{border-color:#3a3d50!important}
         html.dark-theme code.bg-light{background:#3a3d50!important;color:#e4e5e6}
+
+        /* Assistant d'installation */
+        .install-hero{display:grid;grid-template-columns:72px 1fr;gap:16px;align-items:center}
+        .install-icon{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#0d6efd,#20c997);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.3rem;box-shadow:0 12px 28px rgba(13,110,253,.28)}
+        .install-steps{display:grid;gap:10px;margin:18px 0 0;padding:0;list-style:none}
+        .install-step{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:flex-start;padding:12px;border:1px solid rgba(13,110,253,.12);border-radius:8px;background:rgba(13,110,253,.04)}
+        .install-step i{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;color:#0d6efd;font-size:1.2rem;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+        .install-step strong{display:block;font-size:.92rem;margin-bottom:2px}
+        .install-step span{display:block;font-size:.82rem;color:#6c757d;line-height:1.35}
+        .install-note{border-radius:8px;background:#fff7e6;border:1px solid #ffe1a6;color:#6f4d00;padding:10px 12px;font-size:.85rem}
+        .install-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+        .sidebar-install-box{padding:12px 14px;margin-top:10px;border-top:1px solid rgba(255,255,255,.12)}
+        .sidebar-install-btn{width:100%;border:0;border-radius:12px;padding:10px 11px;display:flex;align-items:center;gap:10px;text-align:left;color:#fff;background:linear-gradient(135deg,#0d6efd,#19a974);box-shadow:0 10px 24px rgba(13,110,253,.28);transition:transform .18s,box-shadow .18s}
+        .sidebar-install-btn:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(13,110,253,.34);color:#fff}
+        .sidebar-install-btn img{width:38px;height:38px;border-radius:10px;background:#fff;object-fit:contain;padding:3px;flex-shrink:0}
+        .sidebar-install-btn strong{display:block;font-size:.86rem;line-height:1.1}
+        .sidebar-install-btn span{display:block;font-size:.72rem;opacity:.86;line-height:1.2}
+        .install-checklist{display:grid;gap:10px;margin-top:16px}
+        .install-check{display:flex;gap:10px;align-items:flex-start;border:1px solid rgba(13,110,253,.12);border-radius:8px;padding:10px 12px;background:rgba(13,110,253,.04)}
+        .install-check input{margin-top:4px}
+        .install-check label{font-weight:700;margin:0}
+        .install-check small{display:block;color:#6c757d;line-height:1.35}
+        html.dark-theme .install-step{background:rgba(13,110,253,.08);border-color:#3a3d50}
+        html.dark-theme .install-step i{background:#2a2d3e;box-shadow:none}
+        html.dark-theme .install-step span{color:#9da1b2}
+        html.dark-theme .install-note{background:#3a2d12;border-color:#6f520e;color:#ffd987}
+        html.dark-theme .install-check{background:rgba(13,110,253,.08);border-color:#3a3d50}
+        html.dark-theme .install-check small{color:#9da1b2}
+        @media(display-mode:standalone){#sidebarInstallBox{display:none!important}}
+        @media(max-width:576px){.install-hero{grid-template-columns:1fr;text-align:center}.install-icon{margin:auto}.install-actions>*{width:100%}}
     </style>
     {{-- Appliquer le thème AVANT le rendu pour éviter le flash --}}
     <script>
@@ -152,7 +182,9 @@
             <li class="{{ request()->routeIs('dashboard') ? 'mm-active' : '' }}"><a href="{{ route('dashboard') }}"><div class="parent-icon"><i class="bx bx-home-circle"></i></div><div class="menu-title">Tableau de bord</div></a></li>
             @if(!$user->isTailleur())
             <li class="{{ request()->routeIs('clients.create') ? 'mm-active' : '' }}"><a href="{{ route('clients.create') }}"><div class="parent-icon"><i class="bx bx-user-plus"></i></div><div class="menu-title">Ajouter un client</div></a></li>
+            @endif
             <li class="{{ request()->routeIs('clients.index', 'clients.show', 'clients.edit') ? 'mm-active' : '' }}"><a href="{{ route('clients.index') }}"><div class="parent-icon"><i class="bx bx-user"></i></div><div class="menu-title">Liste des clients</div></a></li>
+            @if(!$user->isTailleur())
             <li class="{{ request()->routeIs('modeles.*') ? 'mm-active' : '' }}"><a href="{{ route('modeles.index') }}"><div class="parent-icon"><i class="bx bx-photo-album"></i></div><div class="menu-title">Albums</div></a></li>
             @endif
             <li class="{{ request()->routeIs('affectations.*') ? 'mm-active' : '' }}"><a href="{{ route('affectations.index') }}"><div class="parent-icon"><i class="bx bx-user-check"></i></div><div class="menu-title">Affectations</div></a></li>
@@ -181,6 +213,12 @@
             <li class="{{ request()->routeIs('parametres.*', 'utilisateurs.*') ? 'mm-active' : '' }}"><a href="{{ route('parametres.index') }}"><div class="parent-icon"><i class="bx bx-cog"></i></div><div class="menu-title">Paramètres</div></a></li>
             @endif
         </ul>
+        <div class="sidebar-install-box" id="sidebarInstallBox">
+            <button type="button" class="sidebar-install-btn" id="sidebarInstallBtn" data-bs-toggle="modal" data-bs-target="#modalInstallApp">
+                <img src="{{ asset('assets/images/ateliko-icon-192.png') }}" alt="">
+                <span><strong>Installer ATELIKO</strong><span>Raccourci et barre des tâches</span></span>
+            </button>
+        </div>
     </div>
     <header><div class="topbar d-flex align-items-center"><nav class="navbar navbar-expand">
         <div class="mobile-toggle-menu" id="sidebarToggle" role="button" tabindex="0"><i class="bx bx-menu"></i></div>
@@ -345,6 +383,9 @@
                                         <button type="button" class="btn btn-primary btn-sm flex-fill cam-shoot">
                                             <i class="bx bx-camera me-1"></i>Capturer
                                         </button>
+                                        <button type="button" class="btn btn-outline-warning btn-sm cam-flip" title="Changer de caméra (avant/arrière)">
+                                            <i class="bx bx-revision"></i>
+                                        </button>
                                         <button type="button" class="btn btn-outline-secondary btn-sm flex-fill cam-redo" style="display:none">
                                             <i class="bx bx-refresh me-1"></i>Reprendre
                                         </button>
@@ -428,6 +469,74 @@
     </div>
 </div>
 @endif
+
+{{-- ===== MODAL PREMIÈRE CONNEXION — INSTALLATION APP ===== --}}
+<div class="modal fade" id="modalInstallApp" tabindex="-1" aria-labelledby="modalInstallAppLabel" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <div class="install-hero w-100">
+                    <div class="install-icon"><i class="bx bx-desktop"></i></div>
+                    <div>
+                        <h5 class="modal-title mb-1" id="modalInstallAppLabel">Installer ATELIKO sur cet ordinateur</h5>
+                        <p class="text-muted mb-0">Un accès direct aide l'équipe à ouvrir l'application sans chercher le navigateur.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body pt-3">
+                <div class="install-note mb-3">
+                    <i class="bx bx-info-circle me-1"></i>
+                    Le navigateur peut installer l'application. L'épinglage à la barre des tâches et le démarrage automatique restent des actions Windows à confirmer par l'utilisateur.
+                </div>
+                <div id="installManualMsg" class="alert alert-warning py-2 px-3 mb-3 d-none" style="border-radius:10px;font-size:.86rem">
+                    <i class="bx bx-info-circle me-1"></i>
+                    Si le bouton natif ne s'affiche pas, utilisez l'icône d'installation dans la barre d'adresse du navigateur, puis suivez les cases ci-dessous.
+                </div>
+                <ul class="install-steps">
+                    <li class="install-step">
+                        <i class="bx bx-download"></i>
+                        <div><strong>Installer l'application</strong><span>Cliquez sur “Installer ATELIKO” quand le bouton est disponible.</span></div>
+                    </li>
+                    <li class="install-step">
+                        <i class="bx bx-link-alt"></i>
+                        <div><strong>Créer un raccourci</strong><span>Après installation, ATELIKO apparaît dans le menu Démarrer et peut être placé sur le bureau.</span></div>
+                    </li>
+                    <li class="install-step">
+                        <i class="bx bx-pin"></i>
+                        <div><strong>Épingler pour les utilisateurs</strong><span>Ouvrez ATELIKO, puis clic droit sur son icône dans la barre des tâches et choisissez “Épingler”.</span></div>
+                    </li>
+                    <li class="install-step">
+                        <i class="bx bx-power-off"></i>
+                        <div><strong>Démarrer à la connexion</strong><span>Dans Windows : Paramètres &gt; Applications &gt; Démarrage, activez ATELIKO si l'option est proposée.</span></div>
+                    </li>
+                </ul>
+                <div class="install-checklist">
+                    <div class="install-check">
+                        <input class="form-check-input install-task" type="checkbox" id="taskInstall">
+                        <div><label for="taskInstall">Application installée</label><small>Utilisez le bouton Installer ATELIKO ou l'icône d'installation du navigateur.</small></div>
+                    </div>
+                    <div class="install-check">
+                        <input class="form-check-input install-task" type="checkbox" id="taskShortcut">
+                        <div><label for="taskShortcut">Raccourci créé</label><small>Vérifiez le bureau ou le menu Démarrer après installation.</small></div>
+                    </div>
+                    <div class="install-check">
+                        <input class="form-check-input install-task" type="checkbox" id="taskPinned">
+                        <div><label for="taskPinned">Épinglé à la barre des tâches</label><small>Ouvrez ATELIKO, clic droit sur son icône, puis Épingler.</small></div>
+                    </div>
+                    <div class="install-check">
+                        <input class="form-check-input install-task" type="checkbox" id="taskStartup">
+                        <div><label for="taskStartup">Démarrage automatique vérifié</label><small>Windows : Paramètres, Applications, Démarrage, puis activez ATELIKO si disponible.</small></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 install-actions">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="installLaterBtn">Plus tard</button>
+                <button type="button" class="btn btn-light border" id="installDoneBtn"><i class="bx bx-check me-1"></i>Déjà fait</button>
+                <button type="button" class="btn btn-primary" id="installAppBtn"><i class="bx bx-download me-1"></i>Installer ATELIKO</button>
+            </div>
+        </div>
+    </div>
+</div>
 <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
 <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
 <script>
@@ -451,6 +560,100 @@
         const isDark = html.classList.toggle(DARK);
         localStorage.setItem('ateliko-theme', isDark ? 'dark' : 'light');
     });
+
+    // Enregistrement PWA : nécessaire pour que le navigateur propose l'installation.
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('{{ asset('sw.js') }}').catch(err => console.warn('[ATELIKO] Service worker:', err));
+        });
+    }
+})();
+</script>
+<script>
+(()=>{
+    const installModalEl = document.getElementById('modalInstallApp');
+    const installBtn = document.getElementById('installAppBtn');
+    const sidebarInstallBtn = document.getElementById('sidebarInstallBtn');
+    const sidebarInstallBox = document.getElementById('sidebarInstallBox');
+    const doneBtn = document.getElementById('installDoneBtn');
+    const laterBtn = document.getElementById('installLaterBtn');
+    const manualMsg = document.getElementById('installManualMsg');
+    const userInstallKey = 'ateliko-install-assistant-v4-{{ $user->id }}';
+    let deferredInstallPrompt = null;
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const hasBlockingModal = !!document.getElementById('modalBlockedEmployee') || @json((bool) ($subModalData['blocked'] ?? false));
+    const hideSidebarInstallButton = () => {
+        if (sidebarInstallBox) sidebarInstallBox.style.display = 'none';
+    };
+    const markInstalled = () => {
+        localStorage.setItem(userInstallKey, 'installed');
+        hideSidebarInstallButton();
+    };
+
+    if (sidebarInstallBox && (isStandalone || localStorage.getItem(userInstallKey) === 'installed')) {
+        hideSidebarInstallButton();
+    }
+
+    window.addEventListener('beforeinstallprompt', event => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        manualMsg?.classList.add('d-none');
+    });
+
+    window.addEventListener('appinstalled', () => {
+        markInstalled();
+        if (installModalEl) {
+            bootstrap.Modal.getInstance(installModalEl)?.hide();
+        }
+    });
+
+    installBtn?.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) {
+            manualMsg?.classList.remove('d-none');
+            installBtn.innerHTML = "<i class=\"bx bx-check me-1\"></i>J'ai compris";
+            return;
+        }
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        if (choice.outcome === 'accepted') markInstalled();
+        deferredInstallPrompt = null;
+    });
+
+    sidebarInstallBtn?.addEventListener('click', () => {
+        if (installModalEl && window.bootstrap?.Modal) {
+            bootstrap.Modal.getOrCreateInstance(installModalEl).show();
+        }
+    });
+
+    doneBtn?.addEventListener('click', () => {
+        markInstalled();
+        bootstrap.Modal.getOrCreateInstance(installModalEl).hide();
+    });
+
+    document.querySelectorAll('.install-task').forEach(input => {
+        const key = userInstallKey + '-' + input.id;
+        input.checked = localStorage.getItem(key) === '1';
+        input.addEventListener('change', () => localStorage.setItem(key, input.checked ? '1' : '0'));
+    });
+
+    laterBtn?.addEventListener('click', () => {});
+
+    function showInstallAssistant() {
+        if (!installModalEl || isStandalone || hasBlockingModal) return;
+        if (localStorage.getItem(userInstallKey) === 'done') return;
+        if (document.querySelector('.modal.show')) return;
+        bootstrap.Modal.getOrCreateInstance(installModalEl).show();
+    }
+
+    window.addEventListener('load', () => {
+        // Le bouton permanent dans la sidebar reste la source fiable d'ouverture.
+        document.querySelectorAll('.modal').forEach(modal => {
+            if (modal !== installModalEl) {
+                modal.addEventListener('hidden.bs.modal', () => setTimeout(showInstallAssistant, 250), { once: true });
+            }
+        });
+    });
 })();
 </script>
 {{-- ===== WIDGET CAMÉRA — JS PARTAGÉ ===== --}}
@@ -473,6 +676,9 @@
 
         if (!fileInput || !video) return;
 
+        var facingMode = 'environment';
+        var flipBtn = w.querySelector('.cam-flip');
+
         function stopStream() {
             if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
         }
@@ -481,7 +687,7 @@
             msg.textContent = 'Accès à la caméra…';
             msg.className = 'cam-msg small text-muted';
             navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
+                video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 } }
             }).then(function(s) {
                 stream = s;
                 video.srcObject = s;
@@ -493,6 +699,14 @@
             }).catch(function(err) {
                 msg.textContent = '⚠ Caméra inaccessible : ' + (err.message || err.name);
                 msg.className = 'cam-msg small text-danger';
+            });
+        }
+
+        if (flipBtn) {
+            flipBtn.addEventListener('click', function() {
+                facingMode = facingMode === 'environment' ? 'user' : 'environment';
+                stopStream();
+                startStream();
             });
         }
 
@@ -630,6 +844,8 @@
 </script>
 @endif
 
+<script src="{{ asset('js/qrcode-generator.js') }}"></script>
+<script src="{{ asset('js/html2canvas.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 // ===== ATELIKO — Système SweetAlert global =====
@@ -704,6 +920,224 @@
             if (r.isConfirmed && form) form.submit();
         });
     });
+
+})();
+
+// ===== ATELIKO — Ticket thermique + WhatsApp =====
+(function () {
+
+    var WA_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/></svg>';
+
+    function cleanPhone(v) {
+        var d = String(v || '').replace(/[^\d+]/g, '');
+        if (!d) return '';
+        if (d.charAt(0) === '+') return d.slice(1);
+        if (d.length === 8) return '223' + d;
+        return d;
+    }
+
+    function fmtM(v) { return Number(v || 0).toLocaleString('fr-FR') + ' FCFA'; }
+
+    function _row(label, value, extra) {
+        return '<div style="display:table;width:100%;margin-bottom:4px' + (extra || '') + '">'
+             + '<div style="display:table-cell;font-size:11px;padding-right:6px">' + label + '</div>'
+             + '<div style="display:table-cell;text-align:right;font-size:11px;font-weight:700">' + value + '</div>'
+             + '</div>';
+    }
+
+    function buildQrText(r) {
+        return [
+            'TICKET ' + (r.typeTicket || 'ATELIKO'),
+            'Atelier: '      + (r.atelierNom   || ''),
+            'Reference: '    + (r.reference    || ''),
+            'Type: '         + (r.statut       || ''),
+            'Beneficiaire: ' + (r.beneficiaire || ''),
+            'Montant: '      + Math.round(r.montant || 0) + ' FCFA',
+            'Date: '         + (r.dateFormatted || ''),
+            'Contact: '      + (r.contact      || ''),
+        ].join('\n');
+    }
+
+    function buildWaText(r) {
+        var nom = r.atelierNom || 'ATELIKO';
+        var isRDV = r.typeTicket === 'RDV';
+        var lines = isRDV ? [
+            '*' + nom + '*',
+            'Bonjour ' + (r.beneficiaire || '') + ',',
+            'Votre rendez-vous est confirmé.',
+            r.dateRdv          ? 'Date RDV : ' + r.dateRdv : null,
+            r.type_rendezvous  ? 'Type : '    + r.type_rendezvous : null,
+            '',
+            r.messageMarketing || ('Nous vous attendons chez ' + nom + '. Merci !')
+        ] : [
+            '*' + nom + '*',
+            r.statut || 'Reçu client',
+            'Référence : '   + (r.reference    || ''),
+            'Date : '        + (r.dateFormatted || ''),
+            'Client : '      + (r.beneficiaire  || ''),
+            r.nomModele ? 'Modèle : ' + r.nomModele : null,
+            r.montant   ? 'Encaissé : ' + fmtM(r.montant) : null,
+            'Total dû : '     + fmtM(r.totalDu),
+            'Payé : '         + fmtM(r.avancePaye),
+            'Reste à payer : '+ fmtM(r.resteAPayer),
+            '',
+            r.messageMarketing || ('Merci pour votre confiance chez ' + nom + ' !')
+        ];
+        return lines.filter(function (l) { return l !== null && l !== undefined; }).join('\n');
+    }
+
+    function buildTicketHtml(r, qrDataUrl) {
+        var isRDV  = r.typeTicket === 'RDV' || r.typeTicket === 'RDV_READY';
+        var atelier = r.atelierNom || 'ATELIKO';
+        var s = '<div style="width:280px;background:#fff;font-family:\'Courier New\',Courier,monospace;padding:18px 14px;color:#111;line-height:1.5">';
+
+        // Entête
+        s += '<div style="text-align:center;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:1px">' + atelier + '</div>';
+        if (r.atelierAdresse)   s += '<div style="text-align:center;font-size:10px;color:#555">Adresse: ' + r.atelierAdresse + '</div>';
+        if (r.atelierTelephone) s += '<div style="text-align:center;font-size:10px;color:#555">Tél: ' + r.atelierTelephone + '</div>';
+
+        // Badge statut
+        s += '<div style="text-align:center;margin:10px 0"><span style="display:inline-block;background:#111;color:#fff;padding:4px 16px;font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase">'
+           + (r.statut || 'REÇU').toUpperCase() + '</span></div>';
+
+        s += '<div style="border-top:1px dashed #999;margin:8px 0"></div>';
+        s += '<div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">DÉTAILS DU TICKET</div>';
+
+        s += _row('Référence',    r.reference    || '');
+        s += _row('Date',         r.dateFormatted|| '');
+        s += _row('Bénéficiaire', r.beneficiaire || '');
+        s += _row('Contact',      r.contact      || '');
+        if (!isRDV)      s += _row('Règlement', r.moyenPaiement || 'ESPECES');
+        if (r.nomModele) s += _row('Modèle',    r.nomModele);
+        if (r.nombreModeles) s += _row('Nb modèles', r.nombreModeles);
+
+        if (isRDV) {
+            s += '<div style="border:1.5px solid #111;padding:10px;margin:10px 0;text-align:center;background:#f8f8f8">';
+            s += '<div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Habit prêt à récupérer</div>';
+            if (r.dateRdv)         s += '<div style="font-size:11px">Date RDV : ' + r.dateRdv + '</div>';
+            if (r.type_rendezvous) s += '<div style="font-size:11px">Type : '     + r.type_rendezvous + '</div>';
+            s += '</div>';
+        } else {
+            s += '<div style="border-top:1px dashed #999;margin:8px 0"></div>';
+            s += _row('Total dû',     fmtM(r.totalDu));
+            s += _row('Avance payée', '<span style="color:#198754">' + fmtM(r.avancePaye) + '</span>');
+            s += _row('Reste à payer','<span style="color:' + (r.resteAPayer > 0 ? '#dc3545' : '#198754') + ';font-weight:900">' + fmtM(r.resteAPayer) + '</span>', ';font-weight:700');
+            s += '<div style="border:2px solid #111;padding:10px;text-align:center;margin:10px 0;background:#f8f8f8">';
+            s += '<div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.5px">' + (r.typeTicket === 'COMMANDE' ? 'AVANCE REÇUE' : 'MONTANT ENCAISSÉ') + '</div>';
+            s += '<div style="font-size:20px;font-weight:900;margin-top:4px">' + fmtM(r.montant) + '</div>';
+            s += '</div>';
+        }
+
+        // Vérification + QR (image inline passée en paramètre)
+        s += '<div style="border-top:1px dashed #999;margin:8px 0"></div>';
+        s += '<div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">VÉRIFICATION</div>';
+        s += '<div style="text-align:center;font-size:10px;color:#555;margin-bottom:8px">Conservez ce ticket comme preuve.</div>';
+        if (qrDataUrl) {
+            s += '<div style="text-align:center;margin:4px 0 6px"><img src="' + qrDataUrl + '" width="90" height="90" style="image-rendering:pixelated"></div>';
+        } else {
+            s += '<div style="width:90px;height:90px;background:#eee;margin:4px auto 6px;display:flex;align-items:center;justify-content:center"><span style="font-size:8px;color:#999">QR</span></div>';
+        }
+        s += '<div style="text-align:center;font-size:9px;color:#666;margin-bottom:4px">Scannez pour vérifier le reçu</div>';
+
+        s += '<div style="border-top:1px dashed #999;margin:8px 0"></div>';
+        s += '<div style="text-align:center;font-weight:900;font-size:12px">Merci pour votre confiance.</div>';
+        if (r.messageMarketing) s += '<div style="text-align:center;font-size:10px;color:#555;margin-top:3px">' + r.messageMarketing + '</div>';
+        s += '<div style="text-align:center;font-size:10px;color:#555;margin-top:2px">' + atelier + '</div>';
+        s += '</div>';
+        return s;
+    }
+
+    // ── Générer QR code comme data URL — synchrone, même lib que React Native (qrcode-generator)
+    function _genQrDataUrl(text) {
+        if (!window.qrcode) return null;
+        try {
+            var qr = qrcode(0, 'M');  // type 0 = auto, M = correction moyenne
+            qr.addData(String(text || ''));
+            qr.make();
+            return qr.createDataURL(3, 4); // cellSize=3px, margin=4px → GIF data URL
+        } catch (e) {
+            console.warn('[ATELIKO QR]', e);
+            return null;
+        }
+    }
+
+    window.showReceiptPopup = async function (receipt) {
+        var phone  = cleanPhone(receipt.contact);
+        var waText = buildWaText(receipt);
+        var waUrl  = phone ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(waText) : null;
+
+        // ── 1. Générer le QR synchronement (pas de canvas, pas d'attente)
+        var qrDataUrl = _genQrDataUrl(buildQrText(receipt));
+
+        // ── 2. Injecter le ticket avec QR déjà intégré comme <img>
+        var host = document.createElement('div');
+        host.style.cssText = 'position:absolute;left:-9999px;top:0;pointer-events:none';
+        host.innerHTML = buildTicketHtml(receipt, qrDataUrl);
+        document.body.appendChild(host);
+
+        // ── 3. Capturer en PNG avec html2canvas
+        var imgDataUrl = null;
+        var imgFile    = null;
+        if (window.html2canvas) {
+            try {
+                await new Promise(function (r) { setTimeout(r, 100); });
+                var canvas = await html2canvas(host.firstElementChild, {
+                    scale: 2, backgroundColor: '#ffffff',
+                    useCORS: true, allowTaint: true, logging: false
+                });
+                imgDataUrl = canvas.toDataURL('image/png');
+                var blob   = await (await fetch(imgDataUrl)).blob();
+                imgFile    = new File([blob], 'recu-ateliko-' + (receipt.reference || 'ticket') + '.png', { type: 'image/png' });
+            } catch (e) { console.warn('[ATELIKO] html2canvas:', e); }
+        }
+        document.body.removeChild(host);
+
+        // ── Construire le contenu de la popup SweetAlert
+        var popHtml = '';
+        if (imgDataUrl) {
+            popHtml += '<img src="' + imgDataUrl + '" style="width:100%;max-width:280px;display:block;margin:0 auto 10px;box-shadow:0 2px 10px rgba(0,0,0,.15);border-radius:4px">';
+            popHtml += '<a href="' + imgDataUrl + '" download="recu-' + (receipt.reference || 'ateliko') + '.png"'
+                     + ' style="display:flex;align-items:center;justify-content:center;gap:6px;background:#0d6efd;color:#fff;border-radius:8px;padding:8px 12px;text-decoration:none;font-weight:600;font-size:13px;margin-bottom:6px">'
+                     + '📥 Télécharger le reçu</a>';
+        }
+
+        var canShareFiles = !!(imgFile && navigator.canShare && navigator.canShare({ files: [imgFile] }));
+
+        // ── Afficher la popup
+        await Swal.fire({
+            title: '✅ ' + (receipt.statut || 'Enregistré') + ' !',
+            html: popHtml || '<p style="color:#555">Reçu généré avec succès.</p>',
+            showConfirmButton: !!(phone || imgFile),
+            confirmButtonText: WA_SVG + ' &nbsp;Envoyer sur WhatsApp',
+            confirmButtonColor: '#25D366',
+            showCancelButton: true,
+            cancelButtonText: 'Fermer',
+            width: 380,
+            preConfirm: async function () {
+                // ── Cas 1 : mobile avec Web Share API → partage natif de l'image
+                // L'utilisateur sélectionne WhatsApp dans la feuille de partage native
+                if (canShareFiles) {
+                    try {
+                        await navigator.share({ files: [imgFile], text: waText, title: 'Reçu ATELIKO' });
+                        return;
+                    } catch (shareErr) {
+                        if (shareErr && shareErr.name === 'AbortError') return; // annulé par l'utilisateur
+                    }
+                }
+                // ── Cas 2 : desktop ou mobile sans Web Share API
+                // Télécharger l'image automatiquement + ouvrir WhatsApp sur le numéro du client
+                if (imgFile) {
+                    var dlA = document.createElement('a');
+                    dlA.href = imgDataUrl;
+                    dlA.download = 'recu-' + (receipt.reference || 'ateliko') + '.png';
+                    dlA.click();
+                }
+                if (waUrl) {
+                    setTimeout(function () { window.open(waUrl, '_blank'); }, 400);
+                }
+            }
+        });
+    };
 
 })();
 </script>

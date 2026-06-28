@@ -36,7 +36,9 @@ class ParametreWebController extends Controller
             ->orderByDesc('created_at')->get();
 
         $permissions = Permission::orderBy('code')->get();
-        $roles = ['PROPRIETAIRE', 'SECRETAIRE', 'TAILLEUR'];
+        $roles = $user->isSuperAdmin()
+            ? ['PROPRIETAIRE', 'SECRETAIRE', 'TAILLEUR']
+            : ['SECRETAIRE', 'TAILLEUR'];
         $subscriptionPlans = $user->isSuperAdmin() ? AbonnementPlan::orderBy('id')->get() : collect();
 
         return view('parametres.index', compact(

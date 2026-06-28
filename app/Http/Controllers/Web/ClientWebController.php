@@ -19,8 +19,8 @@ class ClientWebController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = Client::where('atelier_id', $user->atelier_id)
-            ->with(['mesures' => fn ($query) => $query->orderByDesc('date_mesure')->orderByDesc('created_at')])
+        $query = $this->clientQueryForUser($user)
+            ->with(['mesures' => fn ($query) => $this->mesuresQueryForUser($query, $user)->orderByDesc('date_mesure')->orderByDesc('created_at')])
             ->orderBy('nom')
             ->orderBy('prenom');
 
@@ -38,6 +38,7 @@ class ClientWebController extends Controller
 
     public function create()
     {
+        abort_if(Auth::user()->isTailleur(), 403);
         $atelierId = Auth::user()->atelier_id;
         $modeles = Modele::where('atelier_id', $atelierId)->where('est_actif', true)->get();
         $clientsExistants = Client::where('atelier_id', $atelierId)
@@ -59,6 +60,7 @@ class ClientWebController extends Controller
 
     public function store(Request $request)
     {
+        abort_if(Auth::user()->isTailleur(), 403);
         $request->validate([
             'existing_client_id' => 'nullable|uuid',
             'nom' => 'required_without:existing_client_id|nullable|string|max:100',
@@ -73,84 +75,111 @@ class ClientWebController extends Controller
         ]);
 
         $vetements = collect(json_decode($request->mesures_json, true));
-        abort_if($vetements->isEmpty(), 422, 'Ajoutez au moins un vêtement.');
+
+        if ($vetements->isEmpty()) {
+            return $request->expectsJson()
+                ? response()->json(['message' => 'Ajoutez au moins un vêtement.'], 422)
+                : back()->withErrors(['vetements' => 'Ajoutez au moins un vêtement.']);
+        }
 
         $user = Auth::user();
-        $client = DB::transaction(function () use ($request, $user, $vetements) {
-            if ($request->filled('existing_client_id')) {
-                $client = Client::where('atelier_id', $user->atelier_id)
-                    ->findOrFail($request->existing_client_id);
-            } else {
-                $client = Client::create([
-                    'id' => Str::uuid(),
-                    'nom' => $request->nom,
-                    'prenom' => $request->prenom,
-                    'contact' => $request->contact,
-                    'sexe' => $request->sexe,
-                    'atelier_id' => $user->atelier_id,
-                ]);
-            }
 
-            // RDV livraison automatique
-            Rendezvous::create([
-                'id' => Str::uuid(),
-                'client_id' => $client->id,
-                'atelier_id' => $user->atelier_id,
-                'date_rdv' => now()->addDays(7),
-                'type_rendezvous' => 'LIVRAISON',
-                'notes' => 'Rendez-vous de livraison automatique',
-                'statut' => 'PLANIFIE',
-            ]);
+        try {
+            $client = DB::transaction(function () use ($request, $user, $vetements) {
+                if ($request->filled('existing_client_id')) {
+                    $client = Client::where('atelier_id', $user->atelier_id)
+                        ->findOrFail($request->existing_client_id);
+                } else {
+                    $client = Client::create([
+                        'id' => Str::uuid(),
+                        'nom' => $request->nom,
+                        'prenom' => $request->prenom,
+                        'contact' => $request->contact,
+                        'email' => $request->email,
+                        'adresse' => $request->adresse,
+                        'sexe' => $request->sexe,
+                        'atelier_id' => $user->atelier_id,
+                    ]);
+                }
 
-            $modelPhotos = $request->file('model_photos', []);
-            $habitPhotos = $request->file('habit_photos', []);
-            foreach ($vetements as $index => $vetement) {
-                $type = strtoupper($vetement['typeVetement'] ?? '');
-                abort_unless(in_array($type, ['ROBE', 'JUPE', 'HOMME'], true), 422, 'Type de vêtement invalide.');
-                $requiredFields = [
-                    'ROBE' => ['epaule', 'manche', 'poitrine', 'taille', 'longueur', 'fesse'],
-                    'JUPE' => ['epaule', 'manche', 'poitrine', 'taille', 'longueur', 'longueur_jupe', 'ceinture', 'fesse'],
-                    'HOMME' => ['epaule', 'manche', 'longueur', 'longueur_pantalon', 'ceinture', 'cuisse'],
-                ][$type];
-                $prefix = strtolower($type);
-                abort_if(collect($requiredFields)->contains(fn ($field) => blank($vetement[$prefix.'_'.$field] ?? null)), 422, 'Des mesures obligatoires sont manquantes.');
-                $measureData = $this->mapVetementToMesure($vetement) + [
+                // RDV livraison automatique
+                Rendezvous::create([
                     'id' => Str::uuid(),
                     'client_id' => $client->id,
                     'atelier_id' => $user->atelier_id,
-                    'date_mesure' => now()->toDateString(),
-                    'affecte' => false,
-                ];
-                if (isset($modelPhotos[$index])) {
-                    $measureData['photo_path'] = $modelPhotos[$index]->store('mesure_photo', 'public');
-                }
-                if (isset($habitPhotos[$index])) {
-                    $measureData['habit_photo_path'] = $habitPhotos[$index]->store('habit_photo', 'public');
-                }
-                Mesure::create($measureData);
-            }
-
-            if ($request->filled('avance') && (float) $request->avance > 0) {
-                Paiement::create([
-                    'id' => Str::uuid(), 'montant' => $request->avance,
-                    'moyen' => $request->avance_moyen ?: 'ESPECES', 'type_paiement' => 'CLIENT',
-                    'client_id' => $client->id, 'atelier_id' => $user->atelier_id,
-                    'note' => 'Avance à la création de la mesure',
+                    'date_rdv' => now()->addDays(7),
+                    'type_rendezvous' => 'LIVRAISON',
+                    'notes' => 'Rendez-vous de livraison automatique',
+                    'statut' => 'PLANIFIE',
                 ]);
-            }
 
-            return $client;
-        });
+                $modelPhotos = $request->file('model_photos', []);
+                $habitPhotos = $request->file('habit_photos', []);
+                foreach ($vetements as $index => $vetement) {
+                    $type = strtoupper($vetement['typeVetement'] ?? '');
+                    if (!in_array($type, ['ROBE', 'JUPE', 'HOMME'], true)) {
+                        throw new \InvalidArgumentException("Type de vêtement invalide : $type");
+                    }
+                    $measureData = $this->mapVetementToMesure($vetement) + [
+                        'id' => Str::uuid(),
+                        'client_id' => $client->id,
+                        'atelier_id' => $user->atelier_id,
+                        'date_mesure' => now()->toDateString(),
+                        'affecte' => false,
+                    ];
+                    if (isset($modelPhotos[$index])) {
+                        $measureData['photo_path'] = $modelPhotos[$index]->store('mesure_photo', 'public');
+                    }
+                    if (isset($habitPhotos[$index])) {
+                        $measureData['habit_photo_path'] = $habitPhotos[$index]->store('habit_photo', 'public');
+                    }
+                    Mesure::create($measureData);
+                }
+
+                if ($request->filled('avance') && (float) $request->avance > 0) {
+                    Paiement::create([
+                        'id' => Str::uuid(), 'montant' => $request->avance,
+                        'moyen' => $request->avance_moyen ?: 'ESPECES', 'type_paiement' => 'CLIENT',
+                        'client_id' => $client->id, 'atelier_id' => $user->atelier_id,
+                        'note' => 'Avance à la création de la mesure',
+                    ]);
+                }
+
+                return $client;
+            });
+        } catch (\Throwable $e) {
+            \Log::error('Erreur enregistrement client/mesure: ' . $e->getMessage(), ['exception' => $e]);
+            return $request->expectsJson()
+                ? response()->json(['message' => 'Erreur lors de l\'enregistrement : ' . $e->getMessage()], 500)
+                : back()->withErrors(['general' => $e->getMessage()]);
+        }
 
         $message = $request->filled('existing_client_id')
             ? 'Nouveaux vêtements ajoutés au client'
             : 'Client et vêtements créés avec succès';
 
         if ($request->expectsJson()) {
+            $totalDu = collect($vetements)->sum(fn($v) => (float)($v['prix'] ?? 0));
+            $avancePaye = ($request->filled('avance') && (float)$request->avance > 0) ? (float)$request->avance : 0;
+            $atelierNom = $user->atelier?->nom ?? 'Atelier';
             return response()->json([
                 'message' => $message,
                 'clientId' => $client->id,
                 'redirect' => route('clients.show', $client->id),
+                'receipt' => [
+                    'typeTicket' => 'COMMANDE',
+                    'statut' => 'Reçu client',
+                    'reference' => 'CMD-' . strtoupper(substr($client->id, 0, 8)),
+                    'dateFormatted' => now()->format('d/m/Y H:i'),
+                    'beneficiaire' => trim(($client->prenom ?? '') . ' ' . ($client->nom ?? '')),
+                    'contact' => $client->contact ?? '',
+                    'montant' => $avancePaye,
+                    'totalDu' => $totalDu,
+                    'avancePaye' => $avancePaye,
+                    'resteAPayer' => max(0, $totalDu - $avancePaye),
+                    'atelierNom' => $atelierNom,
+                    'messageMarketing' => 'Merci pour votre confiance en ' . $atelierNom . ' !',
+                ],
             ]);
         }
 
@@ -161,7 +190,8 @@ class ClientWebController extends Controller
     {
         $type = strtoupper($vetement['typeVetement'] ?? '');
         $prefix = $type === 'HOMME' ? 'homme' : strtolower($type);
-        $value = fn (string $name) => $vetement[$prefix.'_'.$name] ?? null;
+        // Convert empty strings to null to avoid MySQL decimal column rejection
+        $value = fn (string $name) => blank($vetement[$prefix.'_'.$name] ?? null) ? null : $vetement[$prefix.'_'.$name];
 
         return [
             'type_vetement' => $type,
@@ -194,14 +224,21 @@ class ClientWebController extends Controller
     {
         $user = Auth::user();
         $client = Client::with([
-            'mesures' => fn ($q) => $q->orderByDesc('date_mesure')->orderByDesc('created_at'),
+            'mesures' => fn ($q) => $this->mesuresQueryForUser($q, $user)->orderByDesc('date_mesure')->orderByDesc('created_at'),
             'mesures.modeleReference',
+            'affectations' => fn ($q) => $user->isTailleur() ? $q->where('tailleur_id', $user->id) : $q,
             'affectations.tailleur',
             'paiements',
             'rendezvous',
-        ])->where('atelier_id', $user->atelier_id)->findOrFail($id);
+        ])->where('atelier_id', $user->atelier_id)
+            ->when($user->isTailleur(), fn ($q) => $q->whereHas('affectations', fn ($a) => $a->where('tailleur_id', $user->id)))
+            ->findOrFail($id);
 
         if ($request->expectsJson()) {
+            if ($user->isTailleur()) {
+                $client->unsetRelation('paiements');
+                $client->unsetRelation('rendezvous');
+            }
             return response()->json(['client' => $client]);
         }
 
@@ -216,6 +253,7 @@ class ClientWebController extends Controller
 
     public function edit($id)
     {
+        abort_if(Auth::user()->isTailleur(), 403);
         $client = Client::where('atelier_id', Auth::user()->atelier_id)->findOrFail($id);
 
         return view('clients.edit', compact('client'));
@@ -223,6 +261,7 @@ class ClientWebController extends Controller
 
     public function update(Request $request, $id)
     {
+        abort_if(Auth::user()->isTailleur(), 403);
         $client = Client::where('atelier_id', Auth::user()->atelier_id)->findOrFail($id);
         $client->fill($request->only(['nom', 'prenom', 'contact', 'sexe']));
         $client->save();
@@ -236,6 +275,7 @@ class ClientWebController extends Controller
 
     public function destroy(Request $request, $id)
     {
+        abort_if(Auth::user()->isTailleur(), 403);
         $client = Client::where('atelier_id', Auth::user()->atelier_id)->findOrFail($id);
         if ($client->photo) {
             Storage::disk('public')->delete($client->photo);
@@ -251,6 +291,7 @@ class ClientWebController extends Controller
 
     public function ajouterMesure(Request $request, $clientId)
     {
+        abort_if(Auth::user()->isTailleur(), 403);
         $user = Auth::user();
         $client = Client::where('atelier_id', $user->atelier_id)->findOrFail($clientId);
 
@@ -278,6 +319,7 @@ class ClientWebController extends Controller
 
     public function modifierMesure(Request $request, $clientId, $mesureId)
     {
+        abort_if(Auth::user()->isTailleur(), 403);
         $client = Client::where('atelier_id', Auth::user()->atelier_id)->findOrFail($clientId);
         $mesure = Mesure::where('client_id', $client->id)->findOrFail($mesureId);
         $data = $request->only([
@@ -300,11 +342,12 @@ class ClientWebController extends Controller
             return response()->json(['message' => 'Modèle modifié avec succès']);
         }
 
-        return redirect()->route('clients.index')->with('success', 'Modèle modifié avec succès');
+        return redirect()->route('clients.show', $clientId)->with('success', 'Mesure modifiée avec succès');
     }
 
     public function supprimerMesure($clientId, $mesureId)
     {
+        abort_if(Auth::user()->isTailleur(), 403);
         $client = Client::where('atelier_id', Auth::user()->atelier_id)->findOrFail($clientId);
         $mesure = Mesure::where('client_id', $client->id)->findOrFail($mesureId);
         $mesure->delete();
@@ -318,6 +361,7 @@ class ClientWebController extends Controller
 
     public function ajouterPaiement(Request $request, $clientId)
     {
+        abort_if(Auth::user()->isTailleur(), 403);
         $request->validate(['montant' => 'required|numeric|min:0.01']);
         $user = Auth::user();
 
@@ -336,11 +380,27 @@ class ClientWebController extends Controller
 
     public function recu($clientId)
     {
-        $client = Client::with(['mesures', 'paiements'])->findOrFail($clientId);
+        $user = Auth::user();
+        $client = $this->clientQueryForUser($user)
+            ->with(['mesures' => fn ($q) => $this->mesuresQueryForUser($q, $user), 'paiements'])
+            ->findOrFail($clientId);
         $montantTotal = $client->mesures->sum('prix');
         $montantPaye = $client->paiements->where('type_paiement', 'CLIENT')->sum('montant');
         $atelier = $client->atelier;
 
         return view('clients.recu', compact('client', 'montantTotal', 'montantPaye', 'atelier'));
+    }
+
+    private function clientQueryForUser($user)
+    {
+        return Client::where('atelier_id', $user->atelier_id)
+            ->when($user->isTailleur(), fn ($query) => $query->whereHas('affectations', fn ($q) => $q->where('tailleur_id', $user->id)));
+    }
+
+    private function mesuresQueryForUser($query, $user)
+    {
+        return $user->isTailleur()
+            ? $query->whereHas('affectations', fn ($q) => $q->where('tailleur_id', $user->id))
+            : $query;
     }
 }

@@ -39,6 +39,10 @@ class ModeleWebController extends Controller
         $request->validate([
             'nom' => 'required|string|max:100',
             'categorie' => 'required|in:ROBE,JUPE,HOMME,ENFANT,AUTRE',
+            'prix' => 'nullable|numeric|min:0',
+            'description' => 'nullable|string|max:1000',
+            'photo' => 'nullable|image|max:5120',
+            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/webm|max:51200',
         ]);
 
         $user = Auth::user();

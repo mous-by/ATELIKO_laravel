@@ -15,23 +15,55 @@
     @endif
 </div>
 
-<!-- Filtres -->
+<!-- Filtres chips -->
 <div class="card mb-3">
     <div class="card-body py-2">
-        <form method="GET" class="d-flex gap-2 flex-wrap">
-            <select name="statut" class="form-select form-select-sm" style="width: auto;">
-                <option value="">Tous les statuts</option>
-                @foreach($statuts as $s)
-                <option value="{{ $s }}" {{ request('statut') == $s ? 'selected' : '' }}>
-                    {{ str_replace('_', ' ', $s) }}
-                </option>
-                @endforeach
-            </select>
-            <button type="submit" class="btn btn-sm btn-outline-primary">Filtrer</button>
-            @if(request('statut'))
-                <a href="{{ route('affectations.index') }}" class="btn btn-sm btn-outline-secondary">Réinitialiser</a>
+        @php
+        $statutColors = [
+            ''          => 'secondary',
+            'EN_ATTENTE'=> 'warning',
+            'EN_COURS'  => 'primary',
+            'TERMINE'   => 'info',
+            'VALIDE'    => 'success',
+            'ANNULE'    => 'danger',
+            'EN_RETARD' => 'dark',
+        ];
+        $statutLabels = [
+            ''          => 'Tous',
+            'EN_ATTENTE'=> 'En attente',
+            'EN_COURS'  => 'En cours',
+            'TERMINE'   => 'Terminé',
+            'VALIDE'    => 'Validé',
+            'ANNULE'    => 'Annulé',
+            'EN_RETARD' => '⚠ En retard',
+        ];
+        $curStatut   = request('statut', '');
+        $curTailleur = request('tailleur_id', '');
+        @endphp
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            {{-- Filtres statut --}}
+            @foreach(array_merge([''], $statuts) as $s)
+            <a href="{{ route('affectations.index', array_filter(['statut' => $s, 'tailleur_id' => $curTailleur])) }}"
+               class="btn btn-sm {{ $curStatut === $s ? 'btn-'.$statutColors[$s] : 'btn-outline-'.$statutColors[$s] }}">
+                {{ $statutLabels[$s] ?? str_replace('_', ' ', $s) }}
+            </a>
+            @endforeach
+
+            @if($tailleurs->isNotEmpty())
+            <span class="text-muted mx-1">|</span>
+            {{-- Filtre tailleur --}}
+            <a href="{{ route('affectations.index', array_filter(['statut' => $curStatut])) }}"
+               class="btn btn-sm {{ !$curTailleur ? 'btn-dark' : 'btn-outline-dark' }}">
+                Tous tailleurs
+            </a>
+            @foreach($tailleurs as $t)
+            <a href="{{ route('affectations.index', array_filter(['statut' => $curStatut, 'tailleur_id' => $t->id])) }}"
+               class="btn btn-sm {{ $curTailleur === $t->id ? 'btn-dark' : 'btn-outline-secondary' }}">
+                {{ $t->prenom }} {{ $t->nom }}
+            </a>
+            @endforeach
             @endif
-        </form>
+        </div>
     </div>
 </div>
 

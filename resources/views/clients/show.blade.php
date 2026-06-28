@@ -76,9 +76,10 @@
                 <span class="badge bg-success w-100 py-2">Soldé ✓</span>
                 @endif
 
-                <a href="{{ route('clients.recu', $client->id) }}" class="btn btn-outline-secondary w-100 btn-sm mt-2">
+                <button type="button" id="btnVoirRecu" class="btn btn-outline-secondary w-100 btn-sm mt-2"
+                    data-url="{{ route('paiements.recu.client', $client->id) }}">
                     <i class="bx bx-receipt me-1"></i>Voir le reçu
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -132,7 +133,7 @@
                                             <th>Modèle</th>
                                             <th>Prix</th>
                                             <th>Statut</th>
-                                            <th></th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -150,15 +151,22 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                <form action="{{ route('clients.mesures.destroy', [$client->id, $mesure->id]) }}" method="POST"
-                                                      data-confirm="Supprimer cette mesure ?"
-                                                      data-confirm-text="Cette action est irréversible."
-                                                      data-confirm-btn="Supprimer">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                        <i class="bx bx-trash"></i>
+                                                <div class="d-flex gap-1">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary btn-edit-mesure" title="Modifier"
+                                                        data-url="{{ route('clients.mesures.update', [$client->id, $mesure->id]) }}"
+                                                        data-mesure="{{ json_encode($mesure->only(['type_vetement','sexe','prix','modele_nom','description','epaule','manche','poitrine','taille','longueur','fesse','tour_manche','longueur_pantalon','ceinture','cuisse','longueur_jupe','corps','longueur_poitrine','longueur_taille','longueur_fesse'])) }}">
+                                                        <i class="bx bx-edit"></i>
                                                     </button>
-                                                </form>
+                                                    <form action="{{ route('clients.mesures.destroy', [$client->id, $mesure->id]) }}" method="POST"
+                                                          data-confirm="Supprimer cette mesure ?"
+                                                          data-confirm-text="Cette action est irréversible."
+                                                          data-confirm-btn="Supprimer">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                            <i class="bx bx-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                         @endforeach
@@ -300,6 +308,58 @@
     </div>
 </div>
 
+<!-- Modal Modifier Mesure -->
+<div class="modal fade" id="modalModifierMesure" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="bx bx-edit me-2"></i>Modifier la mesure</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formModifierMesure" method="POST">
+                @csrf @method('PUT')
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Type de vêtement</label>
+                            <select name="type_vetement" class="form-select">
+                                <option value="ROBE">Robe</option>
+                                <option value="JUPE">Jupe</option>
+                                <option value="HOMME">Homme</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Prix (FCFA)</label>
+                            <input type="number" name="prix" class="form-control" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Modèle</label>
+                            <input type="text" name="modele_nom" class="form-control">
+                        </div>
+                        <div class="col-12"><h6 class="text-primary border-bottom pb-1 mb-0">Mesures (cm)</h6></div>
+                        @foreach(['epaule'=>'Épaule','manche'=>'Manche','poitrine'=>'Poitrine','taille'=>'Taille','longueur'=>'Longueur','fesse'=>'Fesse','tour_manche'=>'Tour manche','longueur_jupe'=>'Lg Jupe','ceinture'=>'Ceinture','longueur_pantalon'=>'Lg Pantalon','cuisse'=>'Cuisse','corps'=>'Corps'] as $mField => $mLabel)
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small">{{ $mLabel }}</label>
+                            <input type="number" name="{{ $mField }}" class="form-control form-control-sm" step="0.5" min="0">
+                        </div>
+                        @endforeach
+                        <div class="col-12">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bx bx-save me-1"></i>Sauvegarder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Mesure -->
 <div class="modal fade" id="modalMesure" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -376,3 +436,41 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+// ── Voir le reçu (popup thermique)
+document.getElementById('btnVoirRecu').addEventListener('click', async function() {
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    try {
+        var r = await fetch(btn.dataset.url, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        var json = await r.json();
+        if (json.receipt && window.showReceiptPopup) window.showReceiptPopup(json.receipt);
+    } catch(e) { console.error(e); }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bx bx-receipt me-1"></i>Voir le reçu';
+});
+
+// ── Modifier mesure
+document.querySelectorAll('.btn-edit-mesure').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var mesure = JSON.parse(this.dataset.mesure);
+        var form   = document.getElementById('formModifierMesure');
+        form.action = this.dataset.url;
+        var fields = ['type_vetement','prix','modele_nom','description',
+                      'epaule','manche','poitrine','taille','longueur','fesse',
+                      'tour_manche','longueur_jupe','ceinture','longueur_pantalon',
+                      'cuisse','corps','longueur_poitrine','longueur_taille','longueur_fesse'];
+        fields.forEach(function(f) {
+            var el = form.querySelector('[name="' + f + '"]');
+            if (el) el.value = mesure[f] !== null && mesure[f] !== undefined ? mesure[f] : '';
+        });
+        new bootstrap.Modal(document.getElementById('modalModifierMesure')).show();
+    });
+});
+</script>
+@endpush

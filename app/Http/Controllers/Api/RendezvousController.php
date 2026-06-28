@@ -14,15 +14,19 @@ class RendezvousController extends Controller
     {
         $request->validate([
             'clientId' => 'required|uuid|exists:clients,id',
-            'atelierId' => 'required|uuid|exists:ateliers,id',
             'dateRDV' => 'required|date',
             'typeRendezVous' => 'required|string',
         ]);
 
+        $user = $request->user();
+        $atelierId = $request->input('atelierId', $user->atelier_id);
+        abort_if($atelierId !== $user->atelier_id && !$user->isSuperAdmin(), 403);
+        Client::where('atelier_id', $atelierId)->findOrFail($request->clientId);
+
         $rdv = Rendezvous::create([
             'id' => Str::uuid(),
             'client_id' => $request->clientId,
-            'atelier_id' => $request->atelierId ?? $request->user()->atelier_id,
+            'atelier_id' => $atelierId,
             'mesure_id' => $request->mesureId,
             'date_rdv' => $request->dateRDV,
             'type_rendezvous' => $request->typeRendezVous,
@@ -35,7 +39,7 @@ class RendezvousController extends Controller
 
     public function update(Request $request, $id)
     {
-        $rdv = Rendezvous::findOrFail($id);
+        $rdv = $this->queryForUser($request)->findOrFail($id);
         $rdv->update([
             'date_rdv' => $request->dateRDV ?? $rdv->date_rdv,
             'type_rendezvous' => $request->typeRendezVous ?? $rdv->type_rendezvous,
@@ -47,19 +51,25 @@ class RendezvousController extends Controller
 
     public function show($id)
     {
-        $rdv = Rendezvous::with('client')->findOrFail($id);
+        $rdv = $this->queryForUser(request())->with('client')->findOrFail($id);
         return response()->json($this->format($rdv));
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        Rendezvous::findOrFail($id)->delete();
+        $this->queryForUser($request)->findOrFail($id)->delete();
         return response()->noContent();
     }
 
-    public function clientsParAtelier($atelierId)
+    public function clientsParAtelier(Request $request, $atelierId)
     {
-        $clients = Client::where('atelier_id', $atelierId)->get()->map(fn($c) => [
+        $user = $request->user();
+        abort_if($atelierId !== $user->atelier_id && !$user->isSuperAdmin(), 403);
+
+        $clients = Client::where('atelier_id', $atelierId)
+            ->when($user->isTailleur(), fn ($query) => $query->whereHas('affectations', fn ($q) => $q->where('tailleur_id', $user->id)))
+            ->get()
+            ->map(fn($c) => [
             'id' => $c->id,
             'nom' => $c->nom,
             'prenom' => $c->prenom,
@@ -68,9 +78,10 @@ class RendezvousController extends Controller
         return response()->json($clients);
     }
 
-    public function aVenir($atelierId)
+    public function aVenir(Request $request, $atelierId)
     {
-        $rdvs = Rendezvous::with('client')
+        $rdvs = $this->queryForUser($request)
+            ->with(['client.mesures', 'client.paiements'])
             ->where('atelier_id', $atelierId)
             ->where('date_rdv', '>=', now())
             ->whereNotIn('statut', ['ANNULE', 'TERMINE'])
@@ -81,7 +92,8 @@ class RendezvousController extends Controller
 
     public function aujourdhui($atelierId)
     {
-        $rdvs = Rendezvous::with('client')
+        $rdvs = $this->queryForUser(request())
+            ->with(['client.mesures', 'client.paiements'])
             ->where('atelier_id', $atelierId)
             ->whereDate('date_rdv', now()->toDateString())
             ->orderBy('date_rdv')
@@ -89,39 +101,87 @@ class RendezvousController extends Controller
         return response()->json($rdvs->map(fn($r) => $this->format($r)));
     }
 
-    public function confirmer($id)
+    public function confirmer(Request $request, $id)
     {
-        $rdv = Rendezvous::findOrFail($id);
+        $rdv = $this->queryForUser($request)->findOrFail($id);
         $rdv->update(['statut' => 'CONFIRME']);
         return response()->json($this->format($rdv->load('client')));
     }
 
-    public function annuler($id)
+    public function annuler(Request $request, $id)
     {
-        $rdv = Rendezvous::findOrFail($id);
+        $rdv = $this->queryForUser($request)->findOrFail($id);
         $rdv->update(['statut' => 'ANNULE']);
         return response()->json($this->format($rdv->load('client')));
     }
 
-    public function terminer($id)
+    public function pret(Request $request, $id)
     {
-        $rdv = Rendezvous::findOrFail($id);
-        $rdv->update(['statut' => 'TERMINE']);
-        return response()->json($this->format($rdv->load('client')));
+        $rdv = $this->queryForUser($request)
+            ->with(['client.mesures', 'client.paiements'])
+            ->findOrFail($id);
+        $paiement = $this->resumePaiementClient($rdv->client);
+
+        if (!$paiement['estSolde']) {
+            return response()->json([
+                'message' => 'Impossible de marquer prêt : le client doit encore payer ' . number_format($paiement['resteAPayer'], 0, ',', ' ') . ' FCFA.',
+                'paiement' => $paiement,
+            ], 422);
+        }
+
+        $rdv->update(['statut' => 'PRET']);
+
+        return response()->json($this->format($rdv->fresh()->load(['client.mesures', 'client.paiements'])));
     }
 
-    public function clientDetails($clientId)
+    public function terminer(Request $request, $id)
     {
-        $client = Client::with(['mesures', 'rendezvous' => fn($q) => $q->orderBy('date_rdv')])->findOrFail($clientId);
+        $rdv = $this->queryForUser($request)
+            ->with(['client.mesures', 'client.paiements'])
+            ->findOrFail($id);
+        $paiement = $this->resumePaiementClient($rdv->client);
+
+        if (!$paiement['estSolde']) {
+            return response()->json([
+                'message' => 'Impossible de terminer : le client doit encore payer ' . number_format($paiement['resteAPayer'], 0, ',', ' ') . ' FCFA.',
+                'paiement' => $paiement,
+            ], 422);
+        }
+
+        $rdv->update(['statut' => 'TERMINE']);
+        return response()->json($this->format($rdv->fresh()->load(['client.mesures', 'client.paiements'])));
+    }
+
+    public function clientDetails(Request $request, $clientId)
+    {
+        $user = $request->user();
+        $client = Client::with([
+            'mesures' => fn ($q) => $user->isTailleur()
+                ? $q->whereHas('affectations', fn ($a) => $a->where('tailleur_id', $user->id))
+                : $q,
+            'paiements',
+            'rendezvous' => fn($q) => $q->orderBy('date_rdv'),
+        ])
+            ->where('atelier_id', $user->atelier_id)
+            ->when($user->isTailleur(), fn ($query) => $query->whereHas('affectations', fn ($q) => $q->where('tailleur_id', $user->id)))
+            ->findOrFail($clientId);
+        $paiement = $this->resumePaiementClient($client);
+
         return response()->json([
             'id' => $client->id,
             'nom' => $client->nom,
             'prenom' => $client->prenom,
             'contact' => $client->contact,
+            'email' => $client->email,
+            'paiement' => $paiement,
             'mesures' => $client->mesures->map(fn($m) => [
                 'id' => $m->id,
                 'typeVetement' => $m->type_vetement,
+                'modeleNom' => $m->modele_nom,
+                'description' => $m->description,
                 'prix' => $m->prix,
+                'dateMesure' => $m->date_mesure,
+                'dateLivraison' => $m->date_livraison,
             ]),
             'rendezvous' => $client->rendezvous->map(fn($r) => $this->format($r)),
         ]);
@@ -129,22 +189,63 @@ class RendezvousController extends Controller
 
     private function format(Rendezvous $r): array
     {
+        $paiement = $r->relationLoaded('client') ? $this->resumePaiementClient($r->client) : null;
+
         return [
             'id' => $r->id,
             'dateRDV' => $r->date_rdv,
+            'date' => $r->date_rdv,
             'typeRendezVous' => $r->type_rendezvous,
+            'type' => $r->type_rendezvous,
             'notes' => $r->notes,
             'statut' => $r->statut,
             'atelierId' => $r->atelier_id,
             'mesureId' => $r->mesure_id,
+            'clientId' => $r->client_id,
             'client' => $r->relationLoaded('client') && $r->client ? [
                 'id' => $r->client->id,
                 'nom' => $r->client->nom,
                 'prenom' => $r->client->prenom,
                 'contact' => $r->client->contact,
             ] : null,
+            'clientNomComplet' => $r->relationLoaded('client') && $r->client ? trim($r->client->prenom . ' ' . $r->client->nom) : null,
+            'clientNom' => $r->relationLoaded('client') && $r->client ? $r->client->nom : null,
+            'clientPrenom' => $r->relationLoaded('client') && $r->client ? $r->client->prenom : null,
+            'clientContact' => $r->relationLoaded('client') && $r->client ? $r->client->contact : null,
+            'paiement' => $paiement,
+            'peutMarquerPret' => $paiement ? $paiement['estSolde'] : false,
             'createdAt' => $r->created_at,
             'updatedAt' => $r->updated_at,
+        ];
+    }
+
+    private function queryForUser(Request $request)
+    {
+        $user = $request->user();
+
+        return Rendezvous::where('atelier_id', $user->atelier_id)
+            ->when($user->isTailleur(), fn ($query) => $query->whereHas('client.affectations', fn ($q) => $q->where('tailleur_id', $user->id)));
+    }
+
+    private function resumePaiementClient(?Client $client): array
+    {
+        if (!$client) {
+            return ['totalDu' => 0.0, 'montantPaye' => 0.0, 'resteAPayer' => 0.0, 'estSolde' => false];
+        }
+
+        $totalDu = $client->relationLoaded('mesures')
+            ? (float) $client->mesures->sum('prix')
+            : (float) $client->mesures()->sum('prix');
+        $montantPaye = $client->relationLoaded('paiements')
+            ? (float) $client->paiements->where('type_paiement', 'CLIENT')->sum('montant')
+            : (float) $client->paiements()->where('type_paiement', 'CLIENT')->sum('montant');
+        $resteAPayer = max(0, $totalDu - $montantPaye);
+
+        return [
+            'totalDu' => $totalDu,
+            'montantPaye' => $montantPaye,
+            'resteAPayer' => $resteAPayer,
+            'estSolde' => $totalDu > 0 && $resteAPayer <= 0,
         ];
     }
 }

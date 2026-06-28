@@ -11,9 +11,12 @@
 @endpush
 
 @section('content')
-<div class="page-header"><div class="container-fluid"><div class="page-breadcrumb d-flex flex-wrap align-items-center gap-2 mb-3"><div class="breadcrumb-title pe-3">Clients</div><div class="ps-3"><nav><ol class="breadcrumb mb-0 p-0"><li class="breadcrumb-item"><a href="{{ route('dashboard') }}"><i class="bx bx-home-alt"></i></a></li><li class="breadcrumb-item active">Liste des clients</li></ol></nav></div><div class="ms-auto"><a href="{{ route('clients.create') }}" class="btn btn-primary">Ajouter un client</a></div></div></div></div>
+<div class="page-header"><div class="container-fluid"><div class="page-breadcrumb d-flex flex-wrap align-items-center gap-2 mb-3"><div class="breadcrumb-title pe-3">Clients</div><div class="ps-3"><nav><ol class="breadcrumb mb-0 p-0"><li class="breadcrumb-item"><a href="{{ route('dashboard') }}"><i class="bx bx-home-alt"></i></a></li><li class="breadcrumb-item active">Liste des clients</li></ol></nav></div>@if(!Auth::user()->isTailleur())<div class="ms-auto"><a href="{{ route('clients.create') }}" class="btn btn-primary">Ajouter un client</a></div>@endif</div></div></div>
 
 <div class="card"><div class="card-body">
+@if(Auth::user()->isTailleur())
+<div class="alert alert-info py-2 mb-3"><i class="bx bx-info-circle me-1"></i>Vous voyez uniquement les clients dont un modèle vous est affecté.</div>
+@endif
 <div class="row g-3 align-items-center mb-3"><div class="col-md-6 col-lg-5"><label class="form-label">Filtrer la liste</label><input type="text" id="clientTableSearch" class="form-control" placeholder="Rechercher par nom, contact, sexe ou modèle..."></div></div>
 <div class="table-responsive"><table class="table table-striped table-bordered align-middle mb-0" style="width:100%"><thead class="table-light"><tr><th style="width:60px">N</th><th>Prénom</th><th>Nom</th><th>Contact</th><th>Sexe/Modèle</th><th>Action</th></tr></thead><tbody id="clientTableBody">
 @forelse($clients as $index=>$client)

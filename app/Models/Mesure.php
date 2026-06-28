@@ -14,7 +14,7 @@ class Mesure extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'client_id', 'atelier_id', 'date_mesure', 'type_vetement', 'sexe',
+        'client_id', 'atelier_id', 'date_mesure', 'date_livraison', 'type_vetement', 'sexe',
         'prix', 'description', 'affecte', 'modele_reference_id', 'modele_nom',
         'photo_path', 'habit_photo_path', 'audio_description_path',
         // Communes

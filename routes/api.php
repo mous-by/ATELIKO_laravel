@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AffectationController;
+use App\Http\Controllers\Api\AdminPermissionController;
+use App\Http\Controllers\Api\AdminSubscriptionController;
 use App\Http\Controllers\Api\AtelierController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientController;
@@ -8,6 +10,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ModeleController;
 use App\Http\Controllers\Api\PaiementController;
 use App\Http\Controllers\Api\RendezvousController;
+use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\UtilisateurController;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +46,38 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [AtelierController::class, 'destroy']);
     });
 
+    // ---- Abonnements ----
+    Route::prefix('subscription')->group(function () {
+        Route::get('/current', [SubscriptionController::class, 'current']);
+        Route::get('/plans', [SubscriptionController::class, 'plans']);
+        Route::get('/payments', [SubscriptionController::class, 'payments']);
+        Route::post('/payments/manual-submit', [SubscriptionController::class, 'submitManualPayment']);
+    });
+
+    // ---- Administration mobile ----
+    Route::prefix('admin')->group(function () {
+        Route::get('/permissions', [AdminPermissionController::class, 'index']);
+        Route::post('/permissions', [AdminPermissionController::class, 'store']);
+        Route::put('/permissions/{id}', [AdminPermissionController::class, 'update']);
+        Route::delete('/permissions/{id}', [AdminPermissionController::class, 'destroy']);
+        Route::get('/utilisateurs/{id}/permissions', [AdminPermissionController::class, 'userPermissions']);
+        Route::post('/utilisateurs/{id}/permissions', [AdminPermissionController::class, 'syncUserPermissions']);
+
+        Route::prefix('subscriptions')->group(function () {
+            Route::get('/plans', [AdminSubscriptionController::class, 'plans']);
+            Route::post('/plans', [AdminSubscriptionController::class, 'storePlan']);
+            Route::put('/plans/{code}', [AdminSubscriptionController::class, 'updatePlan']);
+            Route::delete('/plans/{code}', [AdminSubscriptionController::class, 'destroyPlan']);
+            Route::get('/ateliers', [AdminSubscriptionController::class, 'ateliers']);
+            Route::post('/ateliers/{atelierId}/activate', [AdminSubscriptionController::class, 'activateAtelier']);
+            Route::post('/ateliers/{atelierId}/suspend', [AdminSubscriptionController::class, 'suspendAtelier']);
+            Route::put('/ateliers/{atelierId}/dates', [AdminSubscriptionController::class, 'updateAtelierDates']);
+            Route::get('/payments', [AdminSubscriptionController::class, 'payments']);
+            Route::post('/payments/{paymentId}/approve', [AdminSubscriptionController::class, 'approvePayment']);
+            Route::post('/payments/{paymentId}/reject', [AdminSubscriptionController::class, 'rejectPayment']);
+        });
+    });
+
     // ---- Utilisateurs ----
     Route::prefix('utilisateurs')->group(function () {
         Route::get('/', [UtilisateurController::class, 'index']);
@@ -69,10 +104,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // Modèles via client
         Route::get('/modeles/atelier/{atelierId}', [ClientController::class, 'getModelesByAtelier']);
         Route::get('/modeles/{modeleId}/atelier/{atelierId}', [ClientController::class, 'getModeleDetail']);
+        Route::put('/infos/{id}', [ClientController::class, 'update']);
 
         Route::get('/{id}', [ClientController::class, 'show']);
         Route::put('/{id}', [ClientController::class, 'update']);
-        Route::put('/infos/{id}', [ClientController::class, 'update']);
         Route::delete('/{id}', [ClientController::class, 'destroy']);
 
         // Mesures
@@ -110,27 +145,29 @@ Route::middleware('auth:sanctum')->group(function () {
     // ---- Rendez-vous ----
     Route::prefix('rendezvous')->group(function () {
         Route::post('/', [RendezvousController::class, 'store']);
-        Route::get('/{id}', [RendezvousController::class, 'show']);
-        Route::put('/{id}', [RendezvousController::class, 'update']);
-        Route::delete('/{id}', [RendezvousController::class, 'destroy']);
         Route::get('/atelier/{atelierId}/clients', [RendezvousController::class, 'clientsParAtelier']);
         Route::get('/atelier/{atelierId}/a-venir', [RendezvousController::class, 'aVenir']);
         Route::get('/atelier/{atelierId}/aujourdhui', [RendezvousController::class, 'aujourdhui']);
+        Route::get('/clients/{clientId}/details', [RendezvousController::class, 'clientDetails']);
+        Route::get('/{id}', [RendezvousController::class, 'show']);
+        Route::put('/{id}', [RendezvousController::class, 'update']);
+        Route::delete('/{id}', [RendezvousController::class, 'destroy']);
         Route::put('/{id}/confirmer', [RendezvousController::class, 'confirmer']);
         Route::put('/{id}/annuler', [RendezvousController::class, 'annuler']);
+        Route::put('/{id}/pret', [RendezvousController::class, 'pret']);
         Route::put('/{id}/terminer', [RendezvousController::class, 'terminer']);
-        Route::get('/clients/{clientId}/details', [RendezvousController::class, 'clientDetails']);
     });
 
     // ---- Paiements ----
     Route::prefix('paiements')->group(function () {
         Route::post('/clients', [PaiementController::class, 'createPaiementClient']);
+        Route::get('/clients/recherche', [PaiementController::class, 'rechercheClients']);
         Route::get('/clients/{clientId}', [PaiementController::class, 'getPaiementsClient']);
         Route::post('/tailleurs', [PaiementController::class, 'createPaiementTailleur']);
+        Route::get('/tailleurs/recherche', [PaiementController::class, 'rechercheTailleurs']);
         Route::get('/tailleurs/{tailleurId}', [PaiementController::class, 'getPaiementsTailleur']);
         Route::get('/statistiques', [PaiementController::class, 'statistiques']);
         Route::get('/recouvrement-mensuel', [PaiementController::class, 'recouvrementMensuel']);
-        Route::get('/clients/recherche', [PaiementController::class, 'rechercheClients']);
         Route::get('/recu/client/{paiementId}', [PaiementController::class, 'recuClient']);
         Route::get('/recu/client/due/{clientId}', [PaiementController::class, 'recuClientDu']);
         Route::get('/recu/tailleur/{paiementId}', [PaiementController::class, 'recuTailleur']);

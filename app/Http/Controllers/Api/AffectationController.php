@@ -43,6 +43,7 @@ class AffectationController extends Controller
 
     public function store(Request $request)
     {
+        abort_if($request->user()->isTailleur(), 403);
         $request->validate([
             'clientId' => 'required|uuid|exists:clients,id',
             'mesureId' => 'required|uuid|exists:mesures,id',
@@ -77,8 +78,10 @@ class AffectationController extends Controller
     {
         $request->validate(['statut' => 'required|in:EN_ATTENTE,EN_COURS,TERMINE,VALIDE,ANNULE']);
 
-        $affectation = Affectation::findOrFail($affectationId);
         $user = $request->user();
+        $affectation = Affectation::where('atelier_id', $user->atelier_id)
+            ->when($user->isTailleur(), fn ($q) => $q->where('tailleur_id', $user->id))
+            ->findOrFail($affectationId);
         $newStatut = $request->statut;
 
         $updates = ['statut' => $newStatut];
@@ -104,7 +107,8 @@ class AffectationController extends Controller
 
     public function destroy(Request $request, $affectationId)
     {
-        $affectation = Affectation::findOrFail($affectationId);
+        abort_if($request->user()->isTailleur(), 403);
+        $affectation = Affectation::where('atelier_id', $request->user()->atelier_id)->findOrFail($affectationId);
         // Libérer la mesure
         Mesure::where('id', $affectation->mesure_id)->update(['affecte' => false]);
         $affectation->delete();

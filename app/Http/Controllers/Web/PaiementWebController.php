@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Affectation;
 use App\Models\Client;
 use App\Models\Paiement;
+use App\Models\Rendezvous;
 use App\Models\Utilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -63,33 +64,55 @@ class PaiementWebController extends Controller
     {
         $request->validate(['client_id' => 'required|uuid', 'montant' => 'required|numeric|min:0.01']);
         $user = Auth::user();
+        $client = Client::with(['mesures', 'paiements'])
+            ->where('atelier_id', $user->atelier_id)
+            ->findOrFail($request->client_id);
+
+        $totalDu = (float) $client->mesures->sum('prix');
+        $dejaPaye = (float) $client->paiements->where('type_paiement', 'CLIENT')->sum('montant');
+        $resteAPayer = max(0, $totalDu - $dejaPaye);
+        $montant = (float) $request->montant;
+
+        if ($totalDu <= 0 || $resteAPayer <= 0) {
+            return $this->paymentError($request, 'Ce client a déjà soldé. Aucun paiement en plus n’est autorisé.');
+        }
+
+        if ($montant > $resteAPayer) {
+            return $this->paymentError(
+                $request,
+                'Montant trop élevé : il reste seulement ' . number_format($resteAPayer, 0, ',', ' ') . ' FCFA à payer.'
+            );
+        }
 
         $paiement = Paiement::create([
             'id' => Str::uuid(),
-            'montant' => $request->montant,
+            'montant' => $montant,
             'moyen' => $request->moyen ?? 'ESPECES',
             'type_paiement' => 'CLIENT',
-            'client_id' => $request->client_id,
+            'client_id' => $client->id,
             'atelier_id' => $user->atelier_id,
             'note' => $request->note,
         ]);
 
+        $totalPaye = $dejaPaye + $montant;
+        if ($totalDu > 0 && $totalPaye >= $totalDu) {
+            $this->activateReadyRendezvousForClient($client);
+        }
+
         if ($request->expectsJson()) {
-            $client = Client::with(['mesures', 'paiements'])->findOrFail($request->client_id);
-            $totalDu = $client->mesures->sum('prix');
-            $totalPaye = $client->paiements->where('type_paiement', 'CLIENT')->sum('montant');
             $atelierNom = $user->atelier?->nom ?? 'Atelier';
             return response()->json([
                 'message' => 'Paiement enregistré avec succès',
                 'receipt' => [
                     'typeTicket' => 'PAIEMENT',
+                    'autoWhatsApp' => true,
                     'statut' => 'Reçu client',
                     'reference' => 'PAY-' . strtoupper(substr($paiement->id, 0, 8)),
                     'dateFormatted' => now()->format('d/m/Y H:i'),
                     'beneficiaire' => trim(($client->prenom ?? '') . ' ' . ($client->nom ?? '')),
                     'contact' => $client->contact ?? '',
                     'moyenPaiement' => strtoupper($request->moyen ?? 'ESPECES'),
-                    'montant' => (float) $request->montant,
+                    'montant' => $montant,
                     'totalDu' => (float) $totalDu,
                     'avancePaye' => (float) $totalPaye,
                     'resteAPayer' => (float) max(0, $totalDu - $totalPaye),
@@ -106,13 +129,36 @@ class PaiementWebController extends Controller
     {
         $request->validate(['tailleur_id' => 'required|uuid', 'montant' => 'required|numeric|min:0.01']);
         $user = Auth::user();
+        $tailleur = Utilisateur::where('atelier_id', $user->atelier_id)
+            ->where('role', 'TAILLEUR')
+            ->findOrFail($request->tailleur_id);
+
+        $totalDu = (float) Affectation::where('tailleur_id', $tailleur->id)
+            ->whereIn('statut', ['TERMINE', 'VALIDE'])
+            ->sum('prix_tailleur');
+        $dejaPaye = (float) Paiement::where('tailleur_id', $tailleur->id)
+            ->where('type_paiement', 'TAILLEUR')
+            ->sum('montant');
+        $resteAPayer = max(0, $totalDu - $dejaPaye);
+        $montant = (float) $request->montant;
+
+        if ($totalDu <= 0 || $resteAPayer <= 0) {
+            return $this->paymentError($request, 'Ce tailleur est déjà soldé. Aucun paiement en plus n’est autorisé.');
+        }
+
+        if ($montant > $resteAPayer) {
+            return $this->paymentError(
+                $request,
+                'Montant trop élevé : il reste seulement ' . number_format($resteAPayer, 0, ',', ' ') . ' FCFA à verser.'
+            );
+        }
 
         Paiement::create([
             'id' => Str::uuid(),
-            'montant' => $request->montant,
+            'montant' => $montant,
             'moyen' => $request->moyen ?? 'ESPECES',
             'type_paiement' => 'TAILLEUR',
-            'tailleur_id' => $request->tailleur_id,
+            'tailleur_id' => $tailleur->id,
             'atelier_id' => $user->atelier_id,
             'note' => $request->note,
         ]);
@@ -180,5 +226,38 @@ class PaiementWebController extends Controller
         $totalPaye = $paiements->sum('montant');
 
         return view('paiements.recu-tailleur', compact('tailleur', 'paiements', 'totalDu', 'totalPaye'));
+    }
+
+    private function paymentError(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message], 422);
+        }
+
+        return redirect()->back()->withInput()->with('error', $message);
+    }
+
+    private function activateReadyRendezvousForClient(Client $client): void
+    {
+        $hasReadyHabit = Affectation::where('client_id', $client->id)
+            ->where('atelier_id', $client->atelier_id)
+            ->whereIn('statut', ['TERMINE', 'VALIDE'])
+            ->exists();
+
+        if (!$hasReadyHabit) {
+            return;
+        }
+
+        Rendezvous::where('client_id', $client->id)
+            ->where('atelier_id', $client->atelier_id)
+            ->whereIn('statut', ['PLANIFIE', 'CONFIRME'])
+            ->get()
+            ->each(function (Rendezvous $rdv) {
+                $updates = ['statut' => 'PRET'];
+                if (!$rdv->date_rdv || $rdv->date_rdv->lt(now())) {
+                    $updates['date_rdv'] = now();
+                }
+                $rdv->update($updates);
+            });
     }
 }

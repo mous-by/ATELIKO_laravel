@@ -5,6 +5,7 @@
 @section('page-subtitle', 'Fiche client')
 
 @section('content')
+@php $isTailleur = Auth::user()->isTailleur(); @endphp
 <div class="row g-4">
     <!-- Informations client -->
     <div class="col-lg-4">
@@ -32,15 +33,18 @@
                 @endif
             </div>
             <div class="card-footer bg-transparent">
+                @if(!$isTailleur)
                 <a href="{{ route('clients.edit', $client->id) }}" class="btn btn-outline-primary btn-sm me-1">
                     <i class="bx bx-edit"></i> Modifier
                 </a>
+                @endif
                 <button class="btn btn-outline-info btn-sm" onclick="window.print()">
                     <i class="bx bx-printer"></i> Imprimer
                 </button>
             </div>
         </div>
 
+        @if(!$isTailleur)
         <!-- Résumé paiements -->
         <div class="card mt-3">
             <div class="card-header bg-white fw-semibold">
@@ -82,6 +86,7 @@
                 </button>
             </div>
         </div>
+        @endif
     </div>
 
     <!-- Détails -->
@@ -98,6 +103,7 @@
                     <i class="bx bx-user-check me-1"></i>Affectations ({{ $client->affectations->count() }})
                 </a>
             </li>
+            @if(!$isTailleur)
             <li class="nav-item">
                 <a class="nav-link" data-bs-toggle="tab" href="#paiements">
                     <i class="bx bx-money me-1"></i>Paiements ({{ $client->paiements->count() }})
@@ -108,6 +114,7 @@
                     <i class="bx bx-calendar me-1"></i>RDV ({{ $client->rendezvous->count() }})
                 </a>
             </li>
+            @endif
         </ul>
 
         <div class="tab-content">
@@ -116,9 +123,11 @@
                 <div class="card">
                     <div class="card-header bg-white d-flex justify-content-between">
                         <span><i class="bx bx-ruler text-primary me-2"></i>Mesures</span>
+                        @if(!$isTailleur)
                         <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalMesure">
                             <i class="bx bx-plus"></i> Ajouter
                         </button>
+                        @endif
                     </div>
                     <div class="card-body p-0">
                         @if($client->mesures->isEmpty())
@@ -131,9 +140,9 @@
                                             <th>Date</th>
                                             <th>Type</th>
                                             <th>Modèle</th>
-                                            <th>Prix</th>
+                                            @if(!$isTailleur)<th>Prix</th>@endif
                                             <th>Statut</th>
-                                            <th>Actions</th>
+                                            @if(!$isTailleur)<th>Actions</th>@endif
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -142,7 +151,7 @@
                                             <td>{{ $mesure->date_mesure ? $mesure->date_mesure->format('d/m/Y') : '—' }}</td>
                                             <td><span class="badge bg-light text-dark">{{ $mesure->type_vetement ?? '—' }}</span></td>
                                             <td>{{ $mesure->modele_nom ?? '—' }}</td>
-                                            <td>{{ $mesure->prix ? number_format($mesure->prix, 0, ',', ' ') . ' FCFA' : '—' }}</td>
+                                            @if(!$isTailleur)<td>{{ $mesure->prix ? number_format($mesure->prix, 0, ',', ' ') . ' FCFA' : '—' }}</td>@endif
                                             <td>
                                                 @if($mesure->affecte)
                                                     <span class="badge bg-info">Affecté</span>
@@ -150,6 +159,7 @@
                                                     <span class="badge bg-light text-dark">Disponible</span>
                                                 @endif
                                             </td>
+                                            @if(!$isTailleur)
                                             <td>
                                                 <div class="d-flex gap-1">
                                                     <button type="button" class="btn btn-sm btn-outline-primary btn-edit-mesure" title="Modifier"
@@ -168,6 +178,7 @@
                                                     </form>
                                                 </div>
                                             </td>
+                                            @endif
                                         </tr>
                                         @endforeach
                                     </tbody>
@@ -188,7 +199,7 @@
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
                                     <thead class="table-light">
-                                        <tr><th>Tailleur</th><th>Statut</th><th>Échéance</th><th>Prix tailleur</th></tr>
+                                        <tr><th>Tailleur</th><th>Statut</th><th>Échéance</th>@if(!$isTailleur)<th>Prix tailleur</th>@endif</tr>
                                     </thead>
                                     <tbody>
                                         @foreach($client->affectations as $aff)
@@ -196,7 +207,7 @@
                                             <td>{{ $aff->tailleur?->prenom }} {{ $aff->tailleur?->nom }}</td>
                                             <td>@include('partials.badge-statut', ['statut' => $aff->statut])</td>
                                             <td>{{ $aff->date_echeance ? $aff->date_echeance->format('d/m/Y') : '—' }}</td>
-                                            <td>{{ $aff->prix_tailleur ? number_format($aff->prix_tailleur, 0, ',', ' ') . ' FCFA' : '—' }}</td>
+                                            @if(!$isTailleur)<td>{{ $aff->prix_tailleur ? number_format($aff->prix_tailleur, 0, ',', ' ') . ' FCFA' : '—' }}</td>@endif
                                         </tr>
                                         @endforeach
                                     </tbody>
@@ -207,6 +218,7 @@
                 </div>
             </div>
 
+            @if(!$isTailleur)
             <!-- PAIEMENTS -->
             <div class="tab-pane fade" id="paiements">
                 <div class="card">
@@ -264,10 +276,12 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 </div>
 
+@if(!$isTailleur)
 <!-- Modal Paiement -->
 <div class="modal fade" id="modalPaiement" tabindex="-1">
     <div class="modal-dialog">
@@ -307,7 +321,9 @@
         </div>
     </div>
 </div>
+@endif
 
+@if(!$isTailleur)
 <!-- Modal Modifier Mesure -->
 <div class="modal fade" id="modalModifierMesure" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -359,6 +375,7 @@
         </div>
     </div>
 </div>
+@endif
 
 <!-- Modal Mesure -->
 <div class="modal fade" id="modalMesure" tabindex="-1">
@@ -440,7 +457,7 @@
 @push('scripts')
 <script>
 // ── Voir le reçu (popup thermique)
-document.getElementById('btnVoirRecu').addEventListener('click', async function() {
+document.getElementById('btnVoirRecu')?.addEventListener('click', async function() {
     var btn = this;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';

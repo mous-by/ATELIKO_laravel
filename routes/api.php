@@ -148,6 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/atelier/{atelierId}/clients', [RendezvousController::class, 'clientsParAtelier']);
         Route::get('/atelier/{atelierId}/a-venir', [RendezvousController::class, 'aVenir']);
         Route::get('/atelier/{atelierId}/aujourdhui', [RendezvousController::class, 'aujourdhui']);
+        Route::get('/atelier/{atelierId}/tous', [RendezvousController::class, 'tous']);
         Route::get('/clients/{clientId}/details', [RendezvousController::class, 'clientDetails']);
         Route::get('/{id}', [RendezvousController::class, 'show']);
         Route::put('/{id}', [RendezvousController::class, 'update']);
@@ -167,6 +168,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/tailleurs/recherche', [PaiementController::class, 'rechercheTailleurs']);
         Route::get('/tailleurs/{tailleurId}', [PaiementController::class, 'getPaiementsTailleur']);
         Route::get('/statistiques', [PaiementController::class, 'statistiques']);
+        Route::get('/synthese', [PaiementController::class, 'synthese']);
+        Route::post('/clients/{clientId}/sortie', [PaiementController::class, 'enregistrerSortie']);
         Route::get('/recouvrement-mensuel', [PaiementController::class, 'recouvrementMensuel']);
         Route::get('/recu/client/{paiementId}', [PaiementController::class, 'recuClient']);
         Route::get('/recu/client/due/{clientId}', [PaiementController::class, 'recuClientDu']);

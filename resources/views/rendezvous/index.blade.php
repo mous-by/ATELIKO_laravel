@@ -73,24 +73,21 @@
                                 <form action="{{ route('rendezvous.statut', $rdv->id) }}" method="POST" class="d-inline">
                                     @csrf @method('PATCH')
                                     <input type="hidden" name="statut" value="CONFIRME">
-                                    <button class="btn btn-sm btn-outline-primary">Confirmer</button>
+                                    <button class="btn btn-sm btn-outline-primary">RDV confirmé</button>
                                 </form>
                                 @endif
                                 @if(in_array($rdv->statut, ['PLANIFIE', 'CONFIRME']))
-                                {{-- Bouton "Prêt à récupérer" : habit terminé avant la date de RDV --}}
-                                @if($clientSolde)
-                                    <button class="btn btn-sm btn-success btn-rdv-pret"
-                                        data-id="{{ $rdv->id }}"
-                                        data-url="{{ route('rendezvous.pret', $rdv->id) }}"
-                                        title="Habit terminé — notifier le client par WhatsApp">
-                                        <i class="bx bx-check-shield me-1"></i>Prêt à récupérer
-                                    </button>
-                                @else
-                                    <button class="btn btn-sm btn-outline-secondary" disabled
-                                        title="{{ $totalDu > 0 ? 'Reste à payer : ' . number_format($resteAPayer, 0, ',', ' ') . ' FCFA' : 'Aucun prix de modèle renseigné' }}">
-                                        <i class="bx bx-lock-alt me-1"></i>
-                                        {{ $totalDu > 0 ? 'Reste ' . number_format($resteAPayer, 0, ',', ' ') . ' FCFA' : 'Prix modèle manquant' }}
-                                    </button>
+                                {{-- Habit terminé avant la date de RDV : on informe le client, même s'il reste un solde. --}}
+                                <button class="btn btn-sm btn-success btn-rdv-pret"
+                                    data-id="{{ $rdv->id }}"
+                                    data-url="{{ route('rendezvous.pret', $rdv->id) }}"
+                                    title="Habit terminé — notifier le client par WhatsApp">
+                                    <i class="bx bx-check-shield me-1"></i>Habit prêt
+                                </button>
+                                @if($resteAPayer > 0)
+                                    <small class="text-danger fw-semibold align-self-center">
+                                        Reste {{ number_format($resteAPayer, 0, ',', ' ') }} FCFA
+                                    </small>
                                 @endif
                                 <form action="{{ route('rendezvous.statut', $rdv->id) }}" method="POST" class="d-inline">
                                     @csrf @method('PATCH')
@@ -102,7 +99,7 @@
                                 <form action="{{ route('rendezvous.statut', $rdv->id) }}" method="POST" class="d-inline">
                                     @csrf @method('PATCH')
                                     <input type="hidden" name="statut" value="TERMINE">
-                                    <button class="btn btn-sm btn-outline-success">Client venu ✓</button>
+                                    <button class="btn btn-sm btn-outline-success">Client a récupéré</button>
                                 </form>
                                 @endif
                                 </div>
@@ -276,7 +273,7 @@ document.querySelectorAll('.btn-rdv-pret').forEach(function(btn) {
         } catch (err) {
             swalError(err.message || 'Une erreur est survenue.');
             self.disabled = false;
-            self.innerHTML = '<i class="bx bx-check-shield me-1"></i>Prêt à récupérer';
+            self.innerHTML = '<i class="bx bx-check-shield me-1"></i>Habit prêt';
         }
     });
 });

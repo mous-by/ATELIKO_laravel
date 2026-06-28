@@ -5,46 +5,66 @@
 @push('styles')
 <style>
 @media print {
-    .no-print { display: none !important; }
-    .topbar, .sidebar, .main-content > .d-flex { display: none !important; }
-    .main-content { margin: 0 !important; padding: 0 !important; }
-    body { background: #fff !important; }
+    .no-print { display:none !important; }
+    .topbar, .sidebar, .main-content > .d-flex { display:none !important; }
+    .main-content { margin:0 !important; padding:0 !important; }
+    body { background:#fff !important; }
 }
 #ticketWrapper {
-    width: 300px;
+    width: 320px;
     background: #fff;
-    font-family: 'Courier New', Courier, monospace;
-    padding: 20px 16px;
-    font-size: 12.5px;
-    line-height: 1.7;
+    font-family: Helvetica, Arial, sans-serif;
+    padding: 18px 16px;
+    font-size: 12px;
+    line-height: 1.6;
     color: #111;
-    box-shadow: 0 2px 16px rgba(0,0,0,.12);
-    border-radius: 4px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.13);
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
     margin: 0 auto;
 }
-.rt-title  { text-align:center; font-size:15px; font-weight:900; text-transform:uppercase; letter-spacing:1px }
-.rt-sub    { text-align:center; font-size:10px; color:#555; margin-top:1px }
-.rt-div    { border-top:1px dashed #888; margin:10px 0 }
-.rt-label  { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px }
-.rt-row    { display:flex; justify-content:space-between; margin-bottom:3px; font-size:11px }
-.rt-row b  { font-weight:700 }
-.rt-badge  { display:inline-block; background:#111; color:#fff; padding:4px 16px; font-size:9px; font-weight:900; letter-spacing:1px; text-transform:uppercase }
-.rt-box    { border:2px solid #111; padding:10px; text-align:center; margin:10px 0; background:#f8f8f8 }
-.rt-box-label { font-size:10px; text-transform:uppercase; font-weight:700; letter-spacing:.5px }
-.rt-box-val   { font-size:20px; font-weight:900; margin-top:2px }
-.rt-footer { text-align:center; font-size:11px; color:#666; margin-top:4px }
+.rt-brand     { text-align:center; font-size:16px; font-weight:900; text-transform:uppercase; color:#141414; letter-spacing:.5px }
+.rt-sub       { text-align:center; font-size:11px; color:#666; margin-top:1px }
+.rt-badge-wrap{ display:flex; justify-content:center; margin:10px 0 }
+.rt-badge     { display:inline-block; background:#1a1a1a; color:#fff; padding:5px 18px; font-size:8px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; border-radius:3px }
+.rt-div       { text-align:center; color:#bbb; margin:8px 0; font-size:10px; letter-spacing:2px }
+.rt-section   { font-size:10px; color:#888; font-weight:900; margin-bottom:4px; margin-top:6px; text-transform:uppercase; letter-spacing:.8px }
+.rt-row       { display:flex; justify-content:space-between; gap:8px; margin-bottom:4px; font-size:11px }
+.rt-label     { font-size:11px; color:#555; flex:1.2 }
+.rt-value     { font-size:11px; color:#111; flex:1; text-align:right; font-weight:600 }
+.rt-box       { border:1.5px solid #1a1a1a; padding:10px 8px; text-align:center; margin:10px 0; background:#f7f7f7; border-radius:4px }
+.rt-box-label { font-size:9px; text-transform:uppercase; font-weight:900; color:#666; letter-spacing:.8px; margin-bottom:3px }
+.rt-box-val   { font-size:22px; font-weight:900; color:#111; letter-spacing:.5px }
+.rt-qr-block  { border:1px solid #ccc; background:#fafafa; padding:8px; text-align:center; margin:6px 0 10px; border-radius:4px }
+.rt-thanks    { text-align:center; font-weight:900; color:#111; font-size:12px; margin-top:4px }
+.rt-footer    { text-align:center; font-size:10px; color:#888; margin-top:2px }
+.rt-table     { width:100%; border-collapse:collapse; font-size:10.5px; margin:4px 0 }
+.rt-table th  { background:#f0f0f0; font-weight:900; padding:4px 5px; text-align:left; font-size:10px; color:#444 }
+.rt-table td  { padding:4px 5px; border-bottom:1px solid #f0f0f0; vertical-align:top }
+.rt-table tr:last-child td { border-bottom:none }
+.rt-num       { text-align:right }
+.rt-pay-row   { display:flex; justify-content:space-between; align-items:center; font-size:10.5px; padding:3px 0; border-bottom:1px dotted #eee }
+.rt-pay-row:last-child { border-bottom:none }
+.rt-pay-date  { color:#666; font-size:10px; min-width:60px }
+.rt-pay-moyen { font-size:9px; color:#0d6efd; background:#e8f1ff; border-radius:3px; padding:1px 5px }
+.rt-pay-amt   { font-weight:900; color:#198754; min-width:70px; text-align:right }
 </style>
 @endpush
 
 @section('content')
 
 @php
-    $atelierNom  = $atelier?->nom ?? 'ATELIKO';
-    $resteAPayer = max(0, $montantTotal - $montantPaye);
-    $solde       = $montantTotal > 0 && $resteAPayer <= 0;
-    $reference   = 'CLI-' . strtoupper(substr($client->id, 0, 8));
-    $dateImp     = now()->format('d/m/Y H:i');
-    $beneficiaire = trim(($client->prenom ?? '') . ' ' . ($client->nom ?? ''));
+    $atelierNom      = $atelier?->nom ?? 'ATELIKO';
+    $atelierAdresse  = $atelier?->adresse ?? '';
+    $atelierTel      = $atelier?->telephone ?? '';
+    $resteAPayer     = max(0, $montantTotal - $montantPaye);
+    $solde           = $montantTotal > 0 && $resteAPayer <= 0;
+    $reference       = 'CMD-' . strtoupper(substr($client->id, 0, 8));
+    $dateImp         = now()->format('d/m/Y H:i');
+    $beneficiaire    = trim(($client->prenom ?? '') . ' ' . ($client->nom ?? ''));
+    $statut          = $solde ? 'COMPTE SOLDÉ' : 'REÇU CLIENT';
+    $mesures         = $client->mesures ?? collect();
+    $paiementsHist   = ($client->paiements ?? collect())->where('type_paiement', 'CLIENT')->sortByDesc('date_paiement');
 @endphp
 
 {{-- Actions --}}
@@ -57,61 +77,109 @@
     </button>
     <a id="btnDownload" href="#" download="recu-{{ $reference }}.png"
        class="btn btn-outline-primary px-4 fw-bold d-none">
-        📥 Télécharger l'image
+        📥 Télécharger le reçu
     </a>
-    <button onclick="window.print()" class="btn btn-outline-secondary px-4">
-        🖨️ Imprimer
-    </button>
-    <a href="{{ route('clients.show', $client->id) }}" class="btn btn-outline-secondary px-4">
-        ← Retour
-    </a>
+    <button onclick="window.print()" class="btn btn-outline-secondary px-4">🖨️ Imprimer</button>
+    <a href="{{ route('clients.show', $client->id) }}" class="btn btn-outline-secondary px-4">← Retour</a>
 </div>
 
-{{-- Ticket thermique --}}
+{{-- Ticket --}}
 <div id="ticketWrapper">
 
-    <div class="rt-title">{{ $atelierNom }}</div>
-    <div class="rt-sub">Atelier de couture</div>
+    <div class="rt-brand">{{ $atelierNom }}</div>
+    @if($atelierAdresse)
+        <div class="rt-sub">{{ $atelierAdresse }}</div>
+    @endif
+    @if($atelierTel)
+        <div class="rt-sub">📞 {{ $atelierTel }}</div>
+    @endif
 
-    <div style="text-align:center;margin:10px 0">
-        <span class="rt-badge">{{ $solde ? 'SOLDÉ' : 'REÇU CLIENT' }}</span>
+    <div class="rt-badge-wrap">
+        <span class="rt-badge">{{ $statut }}</span>
     </div>
 
-    <div class="rt-div"></div>
-    <div class="rt-label">Détails du ticket</div>
+    <div class="rt-div">· · · · · · · · · · · · · · · · · · · · ·</div>
 
-    <div class="rt-row"><span>Référence</span><b>{{ $reference }}</b></div>
-    <div class="rt-row"><span>Date</span><b>{{ $dateImp }}</b></div>
-    <div class="rt-row"><span>Client</span><b>{{ $beneficiaire }}</b></div>
-    <div class="rt-row"><span>Contact</span><b>{{ $client->contact ?: '—' }}</b></div>
-    <div class="rt-row"><span>Nb commandes</span><b>{{ $client->mesures->count() }}</b></div>
+    <div class="rt-section">Détails du ticket</div>
+    <div class="rt-row"><span class="rt-label">Référence</span><span class="rt-value">{{ $reference }}</span></div>
+    <div class="rt-row"><span class="rt-label">Date</span><span class="rt-value">{{ $dateImp }}</span></div>
+    <div class="rt-row"><span class="rt-label">Client</span><span class="rt-value">{{ $beneficiaire }}</span></div>
+    <div class="rt-row"><span class="rt-label">Contact</span><span class="rt-value">{{ $client->contact ?: '—' }}</span></div>
+    <div class="rt-row"><span class="rt-label">Nb commandes</span><span class="rt-value">{{ $mesures->count() }}</span></div>
 
-    <div class="rt-div"></div>
+    @if($mesures->isNotEmpty())
+    <div class="rt-div">· · · · · · · · · · · · · · · · · · · · ·</div>
+    <div class="rt-section">Commandes</div>
+    <table class="rt-table">
+        <thead>
+            <tr>
+                <th style="width:52%">Modèle / Type</th>
+                <th style="width:20%;text-align:right">Prix</th>
+                <th style="width:28%;text-align:right">Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach($mesures as $m)
+            <tr>
+                <td>
+                    @if($m->modele_nom)
+                        <strong>{{ $m->modele_nom }}</strong><br>
+                        <span style="color:#666">{{ $m->type_vetement ?? '' }}</span>
+                    @else
+                        {{ $m->type_vetement ?? 'Commande' }}
+                    @endif
+                </td>
+                <td class="rt-num">{{ number_format($m->prix ?? 0, 0, ',', ' ') }} F</td>
+                <td class="rt-num" style="font-size:9px;color:{{ $m->date_livraison ? '#198754' : '#f59f00' }}">
+                    {{ $m->date_livraison ? 'Livré' : 'En cours' }}
+                </td>
+            </tr>
+        @endforeach
+        </tbody>
+    </table>
+    @endif
 
-    <div class="rt-row"><span>Total commandes</span><b>{{ number_format($montantTotal,0,',',' ') }} FCFA</b></div>
-    <div class="rt-row"><span>Avance payée</span><b style="color:#198754">{{ number_format($montantPaye,0,',',' ') }} FCFA</b></div>
+    <div class="rt-div">· · · · · · · · · · · · · · · · · · · · ·</div>
+
+    <div class="rt-row"><span class="rt-label">Total des commandes</span><span class="rt-value">{{ number_format($montantTotal,0,',',' ') }} FCFA</span></div>
+    <div class="rt-row">
+        <span class="rt-label" style="color:#198754">Montant payé</span>
+        <span class="rt-value" style="color:#198754">{{ number_format($montantPaye,0,',',' ') }} FCFA</span>
+    </div>
+    @php $colorReste = $resteAPayer > 0 ? '#dc3545' : '#198754'; @endphp
     <div class="rt-row" style="font-weight:700">
-        <span>Reste à payer</span>
-        <b style="color:{{ $resteAPayer > 0 ? '#dc3545' : '#198754' }}">
-            {{ number_format($resteAPayer,0,',',' ') }} FCFA
-        </b>
+        <span class="rt-label" style="color:{{ $colorReste }}">Reste à payer</span>
+        <span class="rt-value" style="color:{{ $colorReste }}">{{ number_format($resteAPayer,0,',',' ') }} FCFA</span>
     </div>
 
     <div class="rt-box">
-        <div class="rt-box-label">{{ $solde ? 'Compte soldé' : 'Total payé' }}</div>
+        <div class="rt-box-label">{{ $solde ? '✓ Compte soldé' : 'Montant encaissé' }}</div>
         <div class="rt-box-val">{{ number_format($montantPaye,0,',',' ') }} FCFA</div>
     </div>
 
-    <div class="rt-div"></div>
-    <div class="rt-label">Vérification</div>
-    <div class="rt-sub" style="margin-bottom:8px">Scannez pour vérifier ce reçu</div>
-    <div id="qrCode" style="display:flex;justify-content:center;margin:6px 0"></div>
+    @if($paiementsHist->isNotEmpty())
+    <div class="rt-div">· · · · · · · · · · · · · · · · · · · · ·</div>
+    <div class="rt-section">Historique des paiements</div>
+    @foreach($paiementsHist as $p)
+        <div class="rt-pay-row">
+            <span class="rt-pay-date">{{ $p->date_paiement?->format('d/m/Y') ?? '—' }}</span>
+            <span class="rt-pay-moyen">{{ $p->moyen ?? 'ESPECES' }}</span>
+            <span class="rt-pay-amt">{{ number_format($p->montant,0,',',' ') }} F</span>
+        </div>
+    @endforeach
+    @endif
 
-    <div class="rt-div"></div>
-    <div class="rt-footer" style="font-weight:900;font-size:12px">Merci pour votre confiance.</div>
-    <div class="rt-footer">Conservez ce reçu comme preuve.</div>
+    <div class="rt-div">· · · · · · · · · · · · · · · · · · · · ·</div>
+    <div class="rt-section">Vérification</div>
+    <div class="rt-qr-block">
+        <div id="qrCode" style="display:flex;justify-content:center;margin-bottom:4px"></div>
+        <div class="rt-sub" style="margin-top:2px;font-size:9px">Scannez pour vérifier ce reçu</div>
+    </div>
+
+    <div class="rt-div">· · · · · · · · · · · · · · · · · · · · ·</div>
+    <div class="rt-thanks">Merci pour votre confiance.</div>
     <div class="rt-footer">{{ $atelierNom }}</div>
-
+    <div class="rt-footer" style="margin-top:4px;font-size:9px">Ce reçu a été généré électroniquement</div>
 </div>
 
 @endsection
@@ -119,90 +187,114 @@
 @push('scripts')
 <script>
 (function() {
-    var atelierNom   = @json($atelierNom);
-    var reference    = @json($reference);
-    var beneficiaire = @json($beneficiaire);
-    var contact      = @json($client->contact ?? '');
+    var atelierNom   = '{{ addslashes($atelierNom) }}';
+    var reference    = '{{ addslashes($reference) }}';
+    var beneficiaire = '{{ addslashes($beneficiaire) }}';
+    var contact      = '{{ addslashes($client->contact ?? '') }}';
     var montantPaye  = {{ (int) $montantPaye }};
     var montantTotal = {{ (int) $montantTotal }};
     var resteAPayer  = {{ (int) $resteAPayer }};
-    var dateImp      = @json($dateImp);
+    var dateImp      = '{{ $dateImp }}';
+    var mesures      = [
+        @foreach($mesures as $m)
+        { modeleNom: '{{ addslashes($m->modele_nom ?? '') }}', typeVetement: '{{ addslashes($m->type_vetement ?? '') }}', prix: {{ (int)($m->prix ?? 0) }} },
+        @endforeach
+    ];
+    var paiementsHist = [
+        @foreach($paiementsHist as $p)
+        { date: '{{ $p->date_paiement?->format('d/m/Y') ?? '' }}', montant: {{ (int)$p->montant }}, moyen: '{{ $p->moyen ?? 'ESPECES' }}' },
+        @endforeach
+    ];
 
     function fmt(v) { return Number(v||0).toLocaleString('fr-FR') + ' FCFA'; }
 
-    var qrText = [
-        'TICKET PAIEMENT',
-        'Atelier: '      + atelierNom,
-        'Reference: '    + reference,
-        'Type: Reçu client',
-        'Beneficiaire: ' + beneficiaire,
-        'Montant: '      + montantPaye + ' FCFA',
-        'Date: '         + dateImp,
-        'Contact: '      + contact,
-    ].join('\n');
+    // Génération QR
+    (function() {
+        var qrEl = document.getElementById('qrCode');
+        if (!qrEl || !window.qrcode) return;
+        try {
+            var qr = qrcode(0, 'M');
+            qr.addData(
+                'ATELIKO - Recu Client\n' +
+                'Atelier: ' + atelierNom + '\n' +
+                'Ref: ' + reference + '\n' +
+                'Client: ' + beneficiaire + '\n' +
+                'Paye: ' + montantPaye + ' FCFA\n' +
+                'Reste: ' + resteAPayer + ' FCFA\n' +
+                'Date: ' + dateImp
+            );
+            qr.make();
+            qrEl.innerHTML = '<img src="' + qr.createDataURL(3,4) + '" width="90" height="90" style="image-rendering:pixelated;display:block">';
+        } catch(e) { console.warn('[QR]', e); }
+    })();
 
     var imgDataUrl = null;
     var imgFile    = null;
 
-    // ── QR synchrone (qrcode-generator)
-    (function() {
-        var qrEl = document.getElementById('qrCode');
-        if (qrEl && window.qrcode) {
-            try {
-                var qr = qrcode(0, 'M');
-                qr.addData(qrText);
-                qr.make();
-                var dataUrl = qr.createDataURL(3, 4);
-                qrEl.innerHTML = '<img src="' + dataUrl + '" width="90" height="90" style="image-rendering:pixelated;display:block">';
-            } catch(e) { console.warn('[QR]', e); }
-        }
-    })();
-
-    // ── Capture html2canvas
-    setTimeout(async function() {
+    async function captureTicket() {
         if (!window.html2canvas) return;
         try {
             var canvas = await html2canvas(document.getElementById('ticketWrapper'), {
-                scale: 2, backgroundColor: '#ffffff',
+                scale: 2.5, backgroundColor: '#ffffff',
                 useCORS: true, allowTaint: true, logging: false
             });
             imgDataUrl = canvas.toDataURL('image/png');
-            var blob   = await (await fetch(imgDataUrl)).blob();
-            imgFile    = new File([blob], 'recu-' + reference + '.png', { type: 'image/png' });
+            var blob = await (await fetch(imgDataUrl)).blob();
+            imgFile = new File([blob], 'recu-' + reference + '.png', { type: 'image/png' });
             var dl = document.getElementById('btnDownload');
-            dl.href = imgDataUrl;
-            dl.classList.remove('d-none');
+            if (dl) { dl.href = imgDataUrl; dl.classList.remove('d-none'); }
         } catch(e) { console.warn('[ATELIKO] html2canvas:', e); }
-    }, 300);
+    }
 
-    // ── Bouton WhatsApp
+    setTimeout(captureTicket, 400);
+
     document.getElementById('btnWhatsApp').addEventListener('click', async function() {
-        var waText = [
-            '*' + atelierNom + '*',
-            'Reçu client',
-            'Référence : '     + reference,
-            'Date : '          + dateImp,
-            'Client : '        + beneficiaire,
-            '',
-            'Total dû : '      + fmt(montantTotal),
-            'Payé : '          + fmt(montantPaye),
-            'Reste à payer : ' + fmt(resteAPayer),
-            '',
-            'Merci pour votre confiance chez ' + atelierNom + ' !'
-        ].join('\n');
+        if (!imgFile) await captureTicket();
 
-        var phone = contact.replace(/[^\d+]/g, '');
-        if (phone.charAt(0) === '+') phone = phone.slice(1);
-        if (phone.length === 8) phone = '223' + phone;
-        var waUrl = phone ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(waText) : null;
-
-        if (imgFile && navigator.canShare && navigator.canShare({ files: [imgFile] })) {
-            try { await navigator.share({ files: [imgFile], text: waText, title: 'Reçu ATELIKO' }); return; } catch (_) {}
+        var lines = [
+            '*🏭 ' + atelierNom + '*',
+            '─────────────────',
+            '🧾 *Reçu Client*',
+            'Réf : ' + reference,
+            'Date : ' + dateImp,
+            'Client : ' + beneficiaire,
+        ];
+        if (contact) lines.push('📞 ' + contact);
+        lines.push('─────────────────');
+        if (mesures.length > 0) {
+            lines.push('*Commandes :*');
+            mesures.forEach(function(m, i) {
+                var label = m.modeleNom || m.typeVetement || ('Commande ' + (i + 1));
+                lines.push('  ' + (i + 1) + '. ' + label + ' — ' + Number(m.prix||0).toLocaleString('fr-FR') + ' F');
+            });
+            lines.push('─────────────────');
         }
-        if (waUrl) {
-            window.open(waUrl, '_blank');
+        lines.push('💰 Total : ' + fmt(montantTotal));
+        lines.push('✅ Payé : ' + fmt(montantPaye));
+        if (resteAPayer > 0) {
+            lines.push('⚠️ Reste à payer : *' + fmt(resteAPayer) + '*');
         } else {
-            Swal.fire({ icon: 'warning', title: 'Pas de contact', text: 'Ce client n\'a pas de numéro enregistré.', timer: 2500, showConfirmButton: false });
+            lines.push('🎉 *Compte soldé !*');
+        }
+        if (paiementsHist.length > 0) {
+            lines.push('─────────────────');
+            lines.push('*Paiements :*');
+            paiementsHist.forEach(function(p) {
+                lines.push('  ' + (p.date||'—') + ' · ' + (p.moyen||'ESPECES') + ' · ' + Number(p.montant||0).toLocaleString('fr-FR') + ' F');
+            });
+        }
+        lines.push('─────────────────');
+        lines.push('Merci de votre confiance chez *' + atelierNom + '* !');
+
+        if (typeof window.receiptSendWhatsApp === 'function') {
+            await window.receiptSendWhatsApp({
+                imgFile    : imgFile,
+                imgDataUrl : imgDataUrl,
+                waText     : lines.join('\n'),
+                contact    : contact,
+                reference  : reference,
+                atelierNom : atelierNom,
+            });
         }
     });
 })();

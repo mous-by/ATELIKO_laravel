@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    // WhatsApp Business Cloud API (Meta)
+    // Obtenez vos credentials sur https://developers.facebook.com/apps/
+    'whatsapp' => [
+        'token'               => env('WHATSAPP_API_TOKEN', ''),
+        'phone_number_id'     => env('WHATSAPP_PHONE_NUMBER_ID', ''),
+        'business_account_id' => env('WHATSAPP_BUSINESS_ACCOUNT_ID', ''),
+        'api_version'         => env('WHATSAPP_API_VERSION', 'v20.0'),
+        // Indicatif pays par défaut (Mali = 223)
+        'default_country_code' => env('WHATSAPP_DEFAULT_COUNTRY_CODE', '223'),
+    ],
+
 ];

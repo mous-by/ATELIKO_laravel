@@ -848,6 +848,45 @@
 <script src="{{ asset('js/html2canvas.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+// ===== ATELIKO — SweetAlert suit automatiquement le mode nuit =====
+(function() {
+    if (!window.Swal || window.Swal.__atelikoDarkPatched) return;
+
+    var originalFire = window.Swal.fire.bind(window.Swal);
+
+    function isDarkMode() {
+        return document.documentElement.classList.contains('dark-theme')
+            || document.body.classList.contains('dark-theme');
+    }
+
+    function darkOptions(opts) {
+        if (!isDarkMode()) return opts;
+        opts = Object.assign({}, opts || {});
+        opts.background = opts.background || '#171717';
+        opts.color = opts.color || '#e4e5e6';
+        opts.customClass = Object.assign({}, opts.customClass || {}, {
+            popup: ((opts.customClass && opts.customClass.popup) ? opts.customClass.popup + ' ' : '') + 'ateliko-swal-dark',
+        });
+        return opts;
+    }
+
+    window.Swal.fire = function() {
+        var args = Array.prototype.slice.call(arguments);
+
+        if (args.length === 1 && typeof args[0] === 'object') {
+            return originalFire(darkOptions(args[0]));
+        }
+
+        return originalFire(darkOptions({
+            title: args[0],
+            text: args[1],
+            icon: args[2],
+        }));
+    };
+
+    window.Swal.__atelikoDarkPatched = true;
+})();
+
 // ===== ATELIKO — Système SweetAlert global =====
 (function() {
 
@@ -931,7 +970,11 @@
     function cleanPhone(v) {
         var d = String(v || '').replace(/[^\d+]/g, '');
         if (!d) return '';
-        if (d.charAt(0) === '+') return d.slice(1);
+        if (d.indexOf('00') === 0) d = d.slice(2);
+        if (d.charAt(0) === '+') d = d.slice(1);
+        if (d.indexOf('00223') === 0) d = d.slice(2);
+        if (d.indexOf('2230') === 0 && d.length === 12) d = '223' + d.slice(4);
+        if (d.charAt(0) === '0' && d.length === 9) d = d.slice(1);
         if (d.length === 8) return '223' + d;
         return d;
     }
@@ -961,6 +1004,19 @@
     function buildWaText(r) {
         var nom = r.atelierNom || 'ATELIKO';
         var isRDV = r.typeTicket === 'RDV';
+        if (r.typeTicket === 'RDV_READY') {
+            return [
+                '*' + nom + '*',
+                'Bonjour ' + (r.beneficiaire || '') + ',',
+                r.readyMessage || 'Votre commande est prête. Vous pouvez passer la récupérer.',
+                r.nomModele ? 'Habit : ' + r.nomModele : null,
+                r.dateRdv ? 'Rendez-vous : ' + r.dateRdv : null,
+                r.resteAPayer > 0 ? 'Reste à payer : ' + fmtM(r.resteAPayer) : null,
+                '',
+                'L’image du reçu est jointe à ce message.',
+                r.messageMarketing || ('Merci pour votre confiance chez ' + nom + ' !')
+            ].filter(function (l) { return l !== null && l !== undefined; }).join('\n');
+        }
         var lines = isRDV ? [
             '*' + nom + '*',
             'Bonjour ' + (r.beneficiaire || '') + ',',
@@ -989,19 +1045,21 @@
     function buildTicketHtml(r, qrDataUrl) {
         var isRDV  = r.typeTicket === 'RDV' || r.typeTicket === 'RDV_READY';
         var atelier = r.atelierNom || 'ATELIKO';
-        var s = '<div style="width:280px;background:#fff;font-family:\'Courier New\',Courier,monospace;padding:18px 14px;color:#111;line-height:1.5">';
+        var DIV = '<div style="text-align:center;color:#777;margin:8px 0;font-size:11px">--------------------------------</div>';
+        var s = '<div style="width:280px;background:#fff;font-family:Helvetica,Arial,sans-serif;padding:16px;color:#111;line-height:1.6;border-radius:8px;border:1px solid #d1d5db">';
 
         // Entête
-        s += '<div style="text-align:center;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:1px">' + atelier + '</div>';
-        if (r.atelierAdresse)   s += '<div style="text-align:center;font-size:10px;color:#555">Adresse: ' + r.atelierAdresse + '</div>';
-        if (r.atelierTelephone) s += '<div style="text-align:center;font-size:10px;color:#555">Tél: ' + r.atelierTelephone + '</div>';
+        s += '<div style="text-align:center;font-size:15px;font-weight:900;text-transform:uppercase;color:#141414;margin-bottom:2px">' + atelier + '</div>';
+        if (r.atelierAdresse)   s += '<div style="text-align:center;font-size:11px;color:#555;margin-top:2px">' + r.atelierAdresse + '</div>';
+        if (r.atelierTelephone) s += '<div style="text-align:center;font-size:11px;color:#555;margin-top:2px">' + r.atelierTelephone + '</div>';
 
-        // Badge statut
-        s += '<div style="text-align:center;margin:10px 0"><span style="display:inline-block;background:#111;color:#fff;padding:4px 16px;font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase">'
-           + (r.statut || 'REÇU').toUpperCase() + '</span></div>';
+        // Badge statut — centré, largeur 54%, fond sombre
+        s += '<div style="display:flex;justify-content:center;margin:10px 0">'
+           + '<div style="width:54%;background:#232323;color:#fff;padding:5px 0;font-size:8px;font-weight:900;letter-spacing:1px;text-transform:uppercase;text-align:center">'
+           + (r.statut || 'REÇU').toUpperCase() + '</div></div>';
 
-        s += '<div style="border-top:1px dashed #999;margin:8px 0"></div>';
-        s += '<div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">DÉTAILS DU TICKET</div>';
+        s += DIV;
+        s += '<div style="font-size:11px;font-weight:900;color:#111;margin-bottom:4px;margin-top:2px">DÉTAILS DU TICKET</div>';
 
         s += _row('Référence',    r.reference    || '');
         s += _row('Date',         r.dateFormatted|| '');
@@ -1012,37 +1070,40 @@
         if (r.nombreModeles) s += _row('Nb modèles', r.nombreModeles);
 
         if (isRDV) {
-            s += '<div style="border:1.5px solid #111;padding:10px;margin:10px 0;text-align:center;background:#f8f8f8">';
-            s += '<div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Habit prêt à récupérer</div>';
-            if (r.dateRdv)         s += '<div style="font-size:11px">Date RDV : ' + r.dateRdv + '</div>';
+            s += '<div style="border:1.2px solid #2d2d2d;padding:10px 6px;margin:8px 0;text-align:center;background:#f5f5f5">';
+            s += '<div style="font-size:10px;font-weight:900;text-transform:uppercase;color:#5f5f5f;letter-spacing:.5px;margin-bottom:4px">'
+              + (r.resteAPayer > 0 ? 'Solde à régler avant récupération' : 'Habit prêt à récupérer') + '</div>';
+            if (r.dateRdv)         s += '<div style="font-size:11px">Rendez-vous : ' + r.dateRdv + '</div>';
+            if (r.resteAPayer > 0) s += '<div style="font-size:11px;font-weight:900;color:#dc3545">Solde : ' + fmtM(r.resteAPayer) + '</div>';
             if (r.type_rendezvous) s += '<div style="font-size:11px">Type : '     + r.type_rendezvous + '</div>';
             s += '</div>';
         } else {
-            s += '<div style="border-top:1px dashed #999;margin:8px 0"></div>';
+            s += DIV;
             s += _row('Total dû',     fmtM(r.totalDu));
             s += _row('Avance payée', '<span style="color:#198754">' + fmtM(r.avancePaye) + '</span>');
             s += _row('Reste à payer','<span style="color:' + (r.resteAPayer > 0 ? '#dc3545' : '#198754') + ';font-weight:900">' + fmtM(r.resteAPayer) + '</span>', ';font-weight:700');
-            s += '<div style="border:2px solid #111;padding:10px;text-align:center;margin:10px 0;background:#f8f8f8">';
-            s += '<div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.5px">' + (r.typeTicket === 'COMMANDE' ? 'AVANCE REÇUE' : 'MONTANT ENCAISSÉ') + '</div>';
-            s += '<div style="font-size:20px;font-weight:900;margin-top:4px">' + fmtM(r.montant) + '</div>';
+            s += '<div style="border:1.2px solid #2d2d2d;padding:10px 6px;text-align:center;margin:8px 0;background:#f5f5f5">';
+            s += '<div style="font-size:10px;font-weight:900;text-transform:uppercase;color:#5f5f5f;letter-spacing:.5px;margin-bottom:3px">' + (r.typeTicket === 'COMMANDE' ? 'AVANCE REÇUE' : 'MONTANT ENCAISSÉ') + '</div>';
+            s += '<div style="font-size:20px;font-weight:900;color:#111;margin-top:3px">' + fmtM(r.montant) + '</div>';
             s += '</div>';
         }
 
-        // Vérification + QR (image inline passée en paramètre)
-        s += '<div style="border-top:1px dashed #999;margin:8px 0"></div>';
-        s += '<div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">VÉRIFICATION</div>';
-        s += '<div style="text-align:center;font-size:10px;color:#555;margin-bottom:8px">Conservez ce ticket comme preuve.</div>';
+        // Vérification + QR dans un bloc bordé fond clair
+        s += DIV;
+        s += '<div style="font-size:11px;font-weight:900;color:#111;margin-bottom:4px">VÉRIFICATION</div>';
+        s += '<div style="border:1px solid #b4b4b4;background:#fafafa;padding:8px 6px;text-align:center;margin-bottom:8px">';
         if (qrDataUrl) {
-            s += '<div style="text-align:center;margin:4px 0 6px"><img src="' + qrDataUrl + '" width="90" height="90" style="image-rendering:pixelated"></div>';
+            s += '<div style="display:flex;justify-content:center;margin-bottom:4px"><img src="' + qrDataUrl + '" width="90" height="90" style="image-rendering:pixelated;display:block"></div>';
         } else {
-            s += '<div style="width:90px;height:90px;background:#eee;margin:4px auto 6px;display:flex;align-items:center;justify-content:center"><span style="font-size:8px;color:#999">QR</span></div>';
+            s += '<div style="width:90px;height:90px;background:#eee;margin:0 auto 4px;display:flex;align-items:center;justify-content:center"><span style="font-size:8px;color:#999">QR</span></div>';
         }
-        s += '<div style="text-align:center;font-size:9px;color:#666;margin-bottom:4px">Scannez pour vérifier le reçu</div>';
+        s += '<div style="font-size:11px;color:#555">Scannez pour vérifier le reçu</div>';
+        s += '</div>';
 
-        s += '<div style="border-top:1px dashed #999;margin:8px 0"></div>';
-        s += '<div style="text-align:center;font-weight:900;font-size:12px">Merci pour votre confiance.</div>';
-        if (r.messageMarketing) s += '<div style="text-align:center;font-size:10px;color:#555;margin-top:3px">' + r.messageMarketing + '</div>';
-        s += '<div style="text-align:center;font-size:10px;color:#555;margin-top:2px">' + atelier + '</div>';
+        s += DIV;
+        s += '<div style="text-align:center;font-weight:900;color:#111;font-size:12px">Merci pour votre confiance.</div>';
+        if (r.messageMarketing) s += '<div style="text-align:center;font-size:11px;color:#696969;margin-top:2px">' + r.messageMarketing + '</div>';
+        s += '<div style="text-align:center;font-size:11px;color:#696969;margin-top:2px">' + atelier + '</div>';
         s += '</div>';
         return s;
     }
@@ -1061,21 +1122,180 @@
         }
     }
 
+    function openClientWhatsApp(phone, text) {
+        if (!phone) return false;
+        var encoded = encodeURIComponent(text || '');
+        var mobileDeepLink = 'whatsapp://send?phone=' + phone + '&text=' + encoded;
+        var webLink = 'https://wa.me/' + phone + '?text=' + encoded;
+
+        // Android/iOS préfèrent l'application WhatsApp. Desktop garde WhatsApp Web.
+        if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')) {
+            window.location.href = mobileDeepLink;
+            setTimeout(function () { window.open(webLink, '_blank'); }, 900);
+        } else {
+            window.open(webLink, '_blank');
+        }
+        return true;
+    }
+
+    // ── WhatsApp Business API configurée côté serveur ?
+    var _waApiConfigured = @json(!empty(config('services.whatsapp.token')) && !empty(config('services.whatsapp.phone_number_id')));
+    var _waCsrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    // ── Envoi WhatsApp universel — 4 niveaux de priorité :
+    //    1. API Meta (100% automatique, serveur envoie l’image)
+    //    2. Web Share API (mobile HTTPS — partage natif)
+    //    3. Presse-papiers + WhatsApp Web (HTTPS bureau)
+    //    4. Deeplink whatsapp:// + téléchargement image (HTTP mobile/bureau)
+    window.receiptSendWhatsApp = async function (opts) {
+        var phone    = cleanPhone(opts.contact || '');
+        var fname    = 'recu-' + (opts.reference || 'ticket') + '.png';
+        var waText   = opts.waText || '';
+        var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+
+        if (!phone) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Contact manquant',
+                html : 'Ajoutez le numéro WhatsApp du client dans sa fiche,<br>puis réessayez.',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // ── Niveau 1 : API WhatsApp Business (Meta) — 100% automatique
+        //    Configurez WHATSAPP_API_TOKEN et WHATSAPP_PHONE_NUMBER_ID dans .env
+        // ══════════════════════════════════════════════════════════════════
+        if (_waApiConfigured) {
+            Swal.fire({
+                title: '⏳ Envoi en cours…',
+                html : 'Envoi automatique via WhatsApp Business API.',
+                allowOutsideClick: false,
+                didOpen: function () { Swal.showLoading(); }
+            });
+            try {
+                var resp = await fetch('/whatsapp/send-receipt', {
+                    method : 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _waCsrf, 'Accept': 'application/json' },
+                    body: JSON.stringify({ phone: opts.contact, image: opts.imgDataUrl || '', text: waText }),
+                });
+                var result = resp.ok ? await resp.json() : { success: false, error: 'http_' + resp.status };
+                if (result.success) {
+                    await Swal.fire({
+                        icon : 'success',
+                        title: '✅ Reçu envoyé !',
+                        html : 'Le reçu a été envoyé automatiquement sur WhatsApp'
+                             + (result.method === 'image' ? ' <b>avec l\'image</b>.' : ' (message texte).'),
+                        timer: 4000, showConfirmButton: false
+                    });
+                    return;
+                }
+                console.warn('[WhatsApp API]', result.error || 'envoi échoué');
+            } catch (e) {
+                console.warn('[WhatsApp API]', e);
+            }
+            Swal.close();
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // ── Niveau 2 : Web Share API (mobile HTTPS — partage avec image)
+        // ══════════════════════════════════════════════════════════════════
+        if (opts.imgFile && navigator.canShare && navigator.canShare({ files: [opts.imgFile] })) {
+            try {
+                await navigator.share({ files: [opts.imgFile], text: waText, title: 'Reçu ' + (opts.atelierNom || '') });
+                return;
+            } catch (e) {
+                if (e && e.name === 'AbortError') return;
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // ── Niveau 3 : Presse-papiers (HTTPS bureau — image copiée)
+        // ══════════════════════════════════════════════════════════════════
+        var copied = false;
+        if (opts.imgFile && navigator.clipboard && window.ClipboardItem) {
+            try {
+                var cbBlob = new Blob([await opts.imgFile.arrayBuffer()], { type: 'image/png' });
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': cbBlob })]);
+                copied = true;
+            } catch (_) {}
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // ── Niveau 4 : Deeplink + téléchargement (HTTP mobile et bureau)
+        //    whatsapp:// fonctionne sur mobile même sans HTTPS
+        // ══════════════════════════════════════════════════════════════════
+        var encoded    = encodeURIComponent(waText);
+        var deepLink   = 'whatsapp://send?phone=' + phone + '&text=' + encoded;
+        var webLink    = 'https://wa.me/' + phone + '?text=' + encoded;
+        var downloaded = false;
+
+        // Télécharger l’image automatiquement si pas dans le presse-papiers
+        if (!copied && opts.imgDataUrl) {
+            try {
+                var dlA = document.createElement('a');
+                dlA.href = opts.imgDataUrl;
+                dlA.download = fname;
+                document.body.appendChild(dlA);
+                dlA.click();
+                document.body.removeChild(dlA);
+                downloaded = true;
+            } catch (_) {}
+        }
+
+        // Ouvrir WhatsApp — deeplink sur mobile, WhatsApp Web sur bureau
+        if (isMobile) {
+            window.location.href = deepLink;
+            // Fallback WhatsApp Web si l’app n’est pas installée
+            setTimeout(function () {
+                window.open(webLink, '_blank');
+            }, 1500);
+        } else {
+            window.open(webLink, '_blank');
+        }
+
+        // Message d’instruction selon le contexte
+        if (copied) {
+            Swal.fire({
+                icon : 'success',
+                title: '📋 Image copiée',
+                html : 'WhatsApp est ouvert avec le message pré-rempli.<br>'
+                     + 'Collez l\'image avec <b>Ctrl+V</b> (ou maintenez appuyé sur mobile).',
+                timer: 7000, showConfirmButton: false
+            });
+        } else if (downloaded) {
+            Swal.fire({
+                icon : 'info',
+                title: '📥 Reçu téléchargé',
+                html : 'WhatsApp est ouvert avec le message pré-rempli.<br>'
+                     + 'Cliquez sur <b>📎 Joindre</b> pour envoyer l\'image du reçu.',
+                timer: 7000, showConfirmButton: false
+            });
+        } else {
+            Swal.fire({
+                icon : 'success',
+                title: '✅ WhatsApp ouvert',
+                html : 'La conversation est ouverte avec le message complet pré-rempli.',
+                timer: 4000, showConfirmButton: false
+            });
+        }
+    };
+
     window.showReceiptPopup = async function (receipt) {
         var phone  = cleanPhone(receipt.contact);
         var waText = buildWaText(receipt);
-        var waUrl  = phone ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(waText) : null;
 
-        // ── 1. Générer le QR synchronement (pas de canvas, pas d'attente)
+        // ── 1. QR synchrone
         var qrDataUrl = _genQrDataUrl(buildQrText(receipt));
 
-        // ── 2. Injecter le ticket avec QR déjà intégré comme <img>
+        // ── 2. Ticket HTML hors-écran pour html2canvas
         var host = document.createElement('div');
         host.style.cssText = 'position:absolute;left:-9999px;top:0;pointer-events:none';
         host.innerHTML = buildTicketHtml(receipt, qrDataUrl);
         document.body.appendChild(host);
 
-        // ── 3. Capturer en PNG avec html2canvas
+        // ── 3. Capture PNG
         var imgDataUrl = null;
         var imgFile    = null;
         if (window.html2canvas) {
@@ -1087,54 +1307,50 @@
                 });
                 imgDataUrl = canvas.toDataURL('image/png');
                 var blob   = await (await fetch(imgDataUrl)).blob();
-                imgFile    = new File([blob], 'recu-ateliko-' + (receipt.reference || 'ticket') + '.png', { type: 'image/png' });
+                imgFile    = new File([blob], 'recu-' + (receipt.reference || 'ticket') + '.png', { type: 'image/png' });
             } catch (e) { console.warn('[ATELIKO] html2canvas:', e); }
         }
         document.body.removeChild(host);
 
-        // ── Construire le contenu de la popup SweetAlert
+        if (receipt.autoWhatsApp) {
+            await window.receiptSendWhatsApp({
+                imgFile    : imgFile,
+                imgDataUrl : imgDataUrl,
+                waText     : waText,
+                contact    : receipt.contact,
+                reference  : receipt.reference,
+                atelierNom : receipt.atelierNom,
+            });
+            return;
+        }
+
+        // ── 4. Popup SweetAlert avec aperçu + bouton WhatsApp
         var popHtml = '';
         if (imgDataUrl) {
-            popHtml += '<img src="' + imgDataUrl + '" style="width:100%;max-width:280px;display:block;margin:0 auto 10px;box-shadow:0 2px 10px rgba(0,0,0,.15);border-radius:4px">';
+            popHtml += '<img src="' + imgDataUrl + '" style="width:100%;max-width:280px;display:block;margin:0 auto 10px;box-shadow:0 2px 10px rgba(0,0,0,.15);border-radius:6px">';
             popHtml += '<a href="' + imgDataUrl + '" download="recu-' + (receipt.reference || 'ateliko') + '.png"'
                      + ' style="display:flex;align-items:center;justify-content:center;gap:6px;background:#0d6efd;color:#fff;border-radius:8px;padding:8px 12px;text-decoration:none;font-weight:600;font-size:13px;margin-bottom:6px">'
                      + '📥 Télécharger le reçu</a>';
         }
 
-        var canShareFiles = !!(imgFile && navigator.canShare && navigator.canShare({ files: [imgFile] }));
-
-        // ── Afficher la popup
         await Swal.fire({
             title: '✅ ' + (receipt.statut || 'Enregistré') + ' !',
             html: popHtml || '<p style="color:#555">Reçu généré avec succès.</p>',
             showConfirmButton: !!(phone || imgFile),
-            confirmButtonText: WA_SVG + ' &nbsp;Envoyer sur WhatsApp',
+            confirmButtonText: WA_SVG + ' &nbsp;Envoyer au client',
             confirmButtonColor: '#25D366',
             showCancelButton: true,
             cancelButtonText: 'Fermer',
             width: 380,
             preConfirm: async function () {
-                // ── Cas 1 : mobile avec Web Share API → partage natif de l'image
-                // L'utilisateur sélectionne WhatsApp dans la feuille de partage native
-                if (canShareFiles) {
-                    try {
-                        await navigator.share({ files: [imgFile], text: waText, title: 'Reçu ATELIKO' });
-                        return;
-                    } catch (shareErr) {
-                        if (shareErr && shareErr.name === 'AbortError') return; // annulé par l'utilisateur
-                    }
-                }
-                // ── Cas 2 : desktop ou mobile sans Web Share API
-                // Télécharger l'image automatiquement + ouvrir WhatsApp sur le numéro du client
-                if (imgFile) {
-                    var dlA = document.createElement('a');
-                    dlA.href = imgDataUrl;
-                    dlA.download = 'recu-' + (receipt.reference || 'ateliko') + '.png';
-                    dlA.click();
-                }
-                if (waUrl) {
-                    setTimeout(function () { window.open(waUrl, '_blank'); }, 400);
-                }
+                await window.receiptSendWhatsApp({
+                    imgFile    : imgFile,
+                    imgDataUrl : imgDataUrl,
+                    waText     : waText,
+                    contact    : receipt.contact,
+                    reference  : receipt.reference,
+                    atelierNom : receipt.atelierNom,
+                });
             }
         });
     };

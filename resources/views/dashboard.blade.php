@@ -146,6 +146,55 @@
     .scrollable-list::-webkit-scrollbar-thumb:hover {
         background: #a8a8a8; 
     }
+
+    .dash-list-item {
+        background: #ffffff;
+    }
+
+    html.dark-theme .modern-card {
+        background: #171717;
+        box-shadow: 0 0.1rem 0.7rem rgb(0 0 0 / 32%);
+        color: #e4e5e6;
+    }
+
+    html.dark-theme .modern-card .card-header,
+    html.dark-theme .modern-card .card-header.bg-white {
+        background: #171717 !important;
+        border-color: rgba(255,255,255,.13) !important;
+        color: #e4e5e6;
+    }
+
+    html.dark-theme .modern-card .card-title,
+    html.dark-theme .modern-card h5,
+    html.dark-theme .modern-card h6,
+    html.dark-theme .modern-card .text-dark {
+        color: #e4e5e6 !important;
+    }
+
+    html.dark-theme .list-group-item-modern,
+    html.dark-theme .dash-list-item {
+        background: #20212a !important;
+        border-color: rgba(255,255,255,.14) !important;
+        color: #e4e5e6;
+    }
+
+    html.dark-theme .list-group-item-modern:hover,
+    html.dark-theme .dash-list-item:hover {
+        background: #272936 !important;
+    }
+
+    html.dark-theme .scrollable-list::-webkit-scrollbar-track {
+        background: #20212a;
+    }
+
+    html.dark-theme .scrollable-list::-webkit-scrollbar-thumb {
+        background: #4a4f60;
+    }
+
+    html.dark-theme .avatar-circle.bg-gradient-dark {
+        background: linear-gradient(135deg,#303443,#11131a) !important;
+        border: 1px solid rgba(255,255,255,.16);
+    }
 </style>
 
 <div class="dashboard-wrapper pb-4">
@@ -504,7 +553,7 @@
                                 $joursRestants = $echeance->joursRestants;
                                 $badgeColor = $joursRestants <= 2 ? 'danger' : ($joursRestants <= 5 ? 'warning' : 'info');
                             @endphp
-                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded bg-white shadow-sm transition-hover">
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 border rounded dash-list-item shadow-sm transition-hover">
                                 <div>
                                     <h6 class="mb-1 fw-bold text-dark">{{ $echeance->clientNom }}</h6>
                                     <small class="text-muted"><i class="bx bx-calendar-event me-1"></i>{{ \Carbon\Carbon::parse($echeance->dateEcheance)->format('d/m/Y') }}</small>

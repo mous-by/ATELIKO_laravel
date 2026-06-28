@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\PaiementWebController;
 use App\Http\Controllers\Web\ParametreWebController;
 use App\Http\Controllers\Web\RendezvousWebController;
 use App\Http\Controllers\Web\UtilisateurWebController;
+use App\Http\Controllers\Web\WhatsAppWebController;
 use Illuminate\Support\Facades\Route;
 
 // ================================================================
@@ -136,4 +137,8 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     Route::put('/profil', [UtilisateurWebController::class, 'updateProfile'])->name('profile.update');
     Route::delete('/profil/photo', [UtilisateurWebController::class, 'deletePhoto'])->name('profile.photo.delete');
     Route::post('/profil/mot-de-passe', [UtilisateurWebController::class, 'changePassword'])->name('profile.password');
+
+    // ---- WhatsApp Business API ----
+    Route::get('/whatsapp/status', [WhatsAppWebController::class, 'status'])->name('whatsapp.status');
+    Route::post('/whatsapp/send-receipt', [WhatsAppWebController::class, 'sendReceipt'])->name('whatsapp.send-receipt');
 });

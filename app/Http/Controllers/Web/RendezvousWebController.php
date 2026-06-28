@@ -118,30 +118,36 @@ class RendezvousWebController extends Controller
         ])->where('atelier_id', $user->atelier_id)->findOrFail($id);
 
         $paiement = $this->resumePaiementClient($rdv->client);
-        if (!$paiement['estSolde']) {
-            $message = 'Impossible de marquer prêt : le client doit encore payer '
-                . number_format($paiement['resteAPayer'], 0, ',', ' ')
-                . ' FCFA avant la récupération.';
+        $isSolde = $paiement['estSolde'];
 
-            if ($request->expectsJson()) {
-                return response()->json(['message' => $message, 'paiement' => $paiement], 422);
+        if ($isSolde) {
+            $updates = ['statut' => 'PRET'];
+            if ($rdv->date_rdv && $rdv->date_rdv->lt(now())) {
+                $updates['date_rdv'] = now();
             }
-
-            return redirect()->back()->with('error', $message);
+            $rdv->update($updates);
+            $rdv->refresh();
         }
-
-        $rdv->update(['statut' => 'PRET']);
 
         if ($request->expectsJson()) {
             $client = $rdv->client;
             $atelierNom = $user->atelier?->nom ?? 'Atelier';
-            $dateRdv = $rdv->date_rdv ? \Carbon\Carbon::parse($rdv->date_rdv)->format('d/m/Y H:i') : null;
+            $dateRdv = $isSolde
+                ? ($rdv->date_rdv ? \Carbon\Carbon::parse($rdv->date_rdv)->format('d/m/Y H:i') : null)
+                : 'Après règlement du solde';
             $prenom = $client->prenom ?? '';
+            $readyMessage = $isSolde
+                ? 'Votre commande est prête. Vous pouvez passer la récupérer chez ' . $atelierNom . '.'
+                : 'Votre habit est prêt, mais le rendez-vous de récupération sera effectif après règlement du solde de '
+                    . number_format($paiement['resteAPayer'], 0, ',', ' ') . ' FCFA.';
             return response()->json([
-                'message' => 'Habit marqué comme prêt',
+                'message' => $isSolde
+                    ? 'Habit marqué comme prêt'
+                    : 'Habit prêt, mais rendez-vous en attente du paiement du solde',
                 'receipt' => [
                     'typeTicket'       => 'RDV_READY',
-                    'statut'           => 'Habit prêt à récupérer',
+                    'autoWhatsApp'     => true,
+                    'statut'           => $isSolde ? 'Habit prêt à récupérer' : 'Habit prêt - solde à régler',
                     'reference'        => 'RDV-' . strtoupper(substr($rdv->id, 0, 8)),
                     'dateFormatted'    => now()->format('d/m/Y H:i'),
                     'beneficiaire'     => trim($prenom . ' ' . ($client->nom ?? '')),
@@ -153,12 +159,18 @@ class RendezvousWebController extends Controller
                     'avancePaye'       => $paiement['montantPaye'],
                     'resteAPayer'      => $paiement['resteAPayer'],
                     'atelierNom'       => $atelierNom,
-                    'messageMarketing' => 'Bonjour ' . $prenom . ', votre habit est prêt. Passez chez ' . $atelierNom . ' pour le récupérer. Merci !',
+                    'readyMessage'      => $readyMessage,
+                    'messageMarketing' => $isSolde
+                        ? 'Bonjour ' . $prenom . ', votre habit est prêt. Passez chez ' . $atelierNom . ' pour le récupérer. Merci !'
+                        : 'Bonjour ' . $prenom . ', votre habit est prêt. Merci de régler le solde avant la récupération chez ' . $atelierNom . '.',
                 ],
             ]);
         }
 
-        return redirect()->back()->with('success', 'Habit marqué comme prêt à récupérer');
+        return redirect()->back()->with(
+            $isSolde ? 'success' : 'warning',
+            $isSolde ? 'Habit marqué comme prêt à récupérer' : 'Habit prêt, mais rendez-vous en attente du paiement du solde'
+        );
     }
 
     public function changerStatut(Request $request, $id)
@@ -169,8 +181,8 @@ class RendezvousWebController extends Controller
             ->where('atelier_id', $user->atelier_id)
             ->findOrFail($id);
 
-        // Blocage : on ne peut pas marquer PRET/TERMINE si le client n'a pas soldé
-        if (in_array($request->statut, ['PRET', 'TERMINE'], true) && $rdv->client) {
+        // PRET envoie seulement une information au client. Le paiement bloque uniquement la récupération finale.
+        if ($request->statut === 'TERMINE' && $rdv->client) {
             $paiement = $this->resumePaiementClient($rdv->client);
             if (!$paiement['estSolde']) {
                 $resteAPayer = number_format($paiement['resteAPayer'], 0, ',', ' ');

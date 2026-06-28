@@ -13,6 +13,25 @@
 .badge-vide{background:#6c757d;color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px}
 .btn-moyen{border:2px solid #dee2e6;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;background:#fff;transition:all .2s}
 .btn-moyen.selected{border-color:#198754;background:#d1e7dd;color:#0a3622;font-weight:600}
+html.dark-theme .client-pay-card{background:#20212a;border-color:rgba(255,255,255,.14);color:#e4e5e6}
+html.dark-theme .client-pay-card:hover{box-shadow:0 10px 26px rgba(0,0,0,.35)}
+html.dark-theme .progress-pay{background:#303341}
+html.dark-theme .nav-tabs{border-bottom-color:rgba(255,255,255,.14)}
+html.dark-theme .nav-tabs .nav-link,
+html.dark-theme .nav-tabs .nav-link:not(.active),
+html.dark-theme .nav-tabs .nav-item.show .nav-link{background:#171717!important;color:#b7bbc0!important;border-color:rgba(255,255,255,.14)!important}
+html.dark-theme .nav-tabs .nav-link:hover,
+html.dark-theme .nav-tabs .nav-link:focus{background:#20212a!important;color:#fff!important}
+html.dark-theme .nav-tabs .nav-link.active{background:#20212a!important;color:#fff!important;border-color:rgba(255,255,255,.14)!important;border-bottom-color:#20212a!important}
+html.dark-theme .filter-chip.btn-outline-warning,
+html.dark-theme .filter-chip.btn-outline-success,
+html.dark-theme .filter-chip.btn-outline-secondary{background:#171717;color:#e4e5e6;border-color:rgba(255,255,255,.18)}
+html.dark-theme .btn-moyen{background:#20212a;border-color:rgba(255,255,255,.16);color:#e4e5e6}
+html.dark-theme .btn-moyen.selected{background:#143b2a;border-color:#35b779;color:#d7ffe9}
+html.dark-theme .modal-content .input-group-text{background:#20212a;color:#e4e5e6;border-color:rgba(255,255,255,.16)}
+html.dark-theme #clientSummary{background:#17261e!important;border-color:#2f8055!important;color:#e4e5e6}
+html.dark-theme .montant-restant.text-success{color:#64d68a!important}
+html.dark-theme .text-success{color:#64d68a!important}
 </style>
 @endpush
 
@@ -166,7 +185,7 @@
                         data-nom="{{ $c['nom'] }}"
                         data-url="{{ route('paiements.clients.sortie', $c['id']) }}"
                         title="Marquer les habits comme livrés au client">
-                        <i class="bx bx-package me-1"></i>Livré
+                        <i class="bx bx-package me-1"></i>Client a récupéré
                     </button>
                     @endif
                     <button class="btn btn-outline-primary btn-sm flex-fill btn-voir-recu"
@@ -377,7 +396,7 @@
                         <select name="tailleur_id" class="form-select" required>
                             <option value="">-- Sélectionner --</option>
                             @foreach($tailleurs as $t)
-                            <option value="{{ $t['id'] }}">
+                            <option value="{{ $t['id'] }}" data-restant="{{ max(0,$t['totalDu']-$t['totalPaye']) }}">
                                 {{ $t['nom'] }}
                                 — Reste : {{ number_format(max(0,$t['totalDu']-$t['totalPaye']),0,',',' ') }} FCFA
                             </option>
@@ -387,7 +406,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Montant versé (FCFA) <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <input type="number" name="montant" class="form-control form-control-lg fw-bold"
+                            <input type="number" name="montant" id="tailleurMontant" class="form-control form-control-lg fw-bold"
                                    min="1" required placeholder="0" style="font-size:1.3rem">
                             <span class="input-group-text fw-bold">FCFA</span>
                         </div>
@@ -504,6 +523,10 @@ function fmtF(v) { return Number(v||0).toLocaleString('fr-FR') + ' FCFA'; }
 let _currentRestant = 0;
 function _updateSummary(total, paye, restant) {
     _currentRestant = restant;
+    var input = document.getElementById('payMontant');
+    input.max = Math.max(0, Math.round(restant));
+    input.placeholder = restant > 0 ? Math.round(restant) : '0';
+    input.value = '';
     document.getElementById('sumTotal').textContent   = fmtF(total);
     document.getElementById('sumPaye').textContent    = fmtF(paye);
     document.getElementById('sumRestant').textContent = fmtF(restant);
@@ -518,9 +541,21 @@ function _updateSummary(total, paye, restant) {
 document.getElementById('payMontant').addEventListener('input', function() {
     if (!_currentRestant) return;
     const val = parseFloat(this.value || 0);
+    const btn = document.getElementById('btnPaiementClientSubmit');
+    if (val > _currentRestant) {
+        this.classList.add('is-invalid');
+        document.getElementById('nouveauRestant').textContent = 'Montant trop élevé';
+        document.getElementById('nouveauRestant').className = 'text-danger';
+        document.getElementById('montantApresPay').classList.remove('d-none');
+        if (btn) btn.disabled = true;
+        return;
+    }
+    this.classList.remove('is-invalid');
+    if (btn) btn.disabled = false;
     if (val > 0) {
         const apres = Math.max(0, _currentRestant - val);
         document.getElementById('nouveauRestant').textContent = fmtF(apres);
+        document.getElementById('nouveauRestant').className = apres > 0 ? 'text-danger' : 'text-success';
         document.getElementById('montantApresPay').classList.remove('d-none');
     } else {
         document.getElementById('montantApresPay').classList.add('d-none');
@@ -609,7 +644,7 @@ document.querySelectorAll('.btn-livrer').forEach(function(btn) {
         } catch (err) {
             swalError(err.message || 'Une erreur est survenue.');
             self.disabled = false;
-            self.innerHTML = '<i class="bx bx-package me-1"></i>Livré';
+            self.innerHTML = '<i class="bx bx-package me-1"></i>Client a récupéré';
         }
     });
 });
@@ -617,6 +652,11 @@ document.querySelectorAll('.btn-livrer').forEach(function(btn) {
 // ── Soumission AJAX paiement client
 document.getElementById('formPaiementClient').addEventListener('submit', async function(e) {
     e.preventDefault();
+    const montant = parseFloat(document.getElementById('payMontant').value || 0);
+    if (_currentRestant > 0 && montant > _currentRestant) {
+        swalError('Montant trop élevé : il reste seulement ' + fmtF(_currentRestant) + ' à payer.');
+        return;
+    }
     const btn = document.getElementById('btnPaiementClientSubmit');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enregistrement...';
@@ -636,6 +676,27 @@ document.getElementById('formPaiementClient').addEventListener('submit', async f
         btn.innerHTML = '<i class="bx bx-check-circle me-1"></i>Enregistrer le paiement';
     }
 });
+
+const tailleurSelect = document.querySelector('#modalPaiementTailleur select[name="tailleur_id"]');
+const tailleurMontant = document.getElementById('tailleurMontant');
+if (tailleurSelect && tailleurMontant) {
+    tailleurSelect.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        const restant = parseFloat(opt?.dataset?.restant || 0);
+        tailleurMontant.max = Math.max(0, Math.round(restant));
+        tailleurMontant.placeholder = restant > 0 ? Math.round(restant) : '0';
+        tailleurMontant.value = '';
+    });
+    tailleurMontant.closest('form')?.addEventListener('submit', function(e) {
+        const opt = tailleurSelect.options[tailleurSelect.selectedIndex];
+        const restant = parseFloat(opt?.dataset?.restant || 0);
+        const montant = parseFloat(tailleurMontant.value || 0);
+        if (restant > 0 && montant > restant) {
+            e.preventDefault();
+            swalError('Montant trop élevé : il reste seulement ' + fmtF(restant) + ' à verser.');
+        }
+    });
+}
 
 </script>
 @endpush

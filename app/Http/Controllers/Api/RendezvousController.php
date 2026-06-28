@@ -78,6 +78,16 @@ class RendezvousController extends Controller
         return response()->json($clients);
     }
 
+    public function tous(Request $request, $atelierId)
+    {
+        $rdvs = $this->queryForUser($request)
+            ->with(['client.mesures', 'client.paiements'])
+            ->where('atelier_id', $atelierId)
+            ->orderBy('date_rdv', 'desc')
+            ->get();
+        return response()->json($rdvs->map(fn($r) => $this->format($r)));
+    }
+
     public function aVenir(Request $request, $atelierId)
     {
         $rdvs = $this->queryForUser($request)

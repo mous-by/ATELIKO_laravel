@@ -82,6 +82,18 @@ class ClientWebController extends Controller
                 : back()->withErrors(['vetements' => 'Ajoutez au moins un vêtement.']);
         }
 
+        $totalNouvelleCommande = (float) $vetements->sum(fn ($v) => (float) ($v['prix'] ?? 0));
+        $avanceDemandee = (float) ($request->avance ?? 0);
+        if ($avanceDemandee > $totalNouvelleCommande) {
+            $message = 'Montant trop élevé : l’avance ne peut pas dépasser le total de la commande ('
+                . number_format($totalNouvelleCommande, 0, ',', ' ')
+                . ' FCFA).';
+
+            return $request->expectsJson()
+                ? response()->json(['message' => $message], 422)
+                : back()->withInput()->withErrors(['avance' => $message]);
+        }
+
         $user = Auth::user();
 
         try {
@@ -168,6 +180,7 @@ class ClientWebController extends Controller
                 'redirect' => route('clients.show', $client->id),
                 'receipt' => [
                     'typeTicket' => 'COMMANDE',
+                    'autoWhatsApp' => true,
                     'statut' => 'Reçu client',
                     'reference' => 'CMD-' . strtoupper(substr($client->id, 0, 8)),
                     'dateFormatted' => now()->format('d/m/Y H:i'),
@@ -238,6 +251,10 @@ class ClientWebController extends Controller
             if ($user->isTailleur()) {
                 $client->unsetRelation('paiements');
                 $client->unsetRelation('rendezvous');
+                $client->mesures->each(function ($mesure) {
+                    $mesure->makeHidden(['prix']);
+                    unset($mesure->prix);
+                });
             }
             return response()->json(['client' => $client]);
         }
@@ -364,13 +381,32 @@ class ClientWebController extends Controller
         abort_if(Auth::user()->isTailleur(), 403);
         $request->validate(['montant' => 'required|numeric|min:0.01']);
         $user = Auth::user();
+        $client = Client::with(['mesures', 'paiements'])
+            ->where('atelier_id', $user->atelier_id)
+            ->findOrFail($clientId);
+
+        $totalDu = (float) $client->mesures->sum('prix');
+        $dejaPaye = (float) $client->paiements->where('type_paiement', 'CLIENT')->sum('montant');
+        $resteAPayer = max(0, $totalDu - $dejaPaye);
+        $montant = (float) $request->montant;
+
+        if ($totalDu <= 0 || $resteAPayer <= 0) {
+            return redirect()->back()->withInput()->with('error', 'Ce client a déjà soldé. Aucun paiement en plus n’est autorisé.');
+        }
+
+        if ($montant > $resteAPayer) {
+            return redirect()->back()->withInput()->with(
+                'error',
+                'Montant trop élevé : il reste seulement ' . number_format($resteAPayer, 0, ',', ' ') . ' FCFA à payer.'
+            );
+        }
 
         Paiement::create([
             'id' => Str::uuid(),
-            'montant' => $request->montant,
+            'montant' => $montant,
             'moyen' => $request->moyen ?? 'ESPECES',
             'type_paiement' => 'CLIENT',
-            'client_id' => $clientId,
+            'client_id' => $client->id,
             'atelier_id' => $user->atelier_id,
             'note' => $request->note,
         ]);

@@ -179,6 +179,58 @@ class PaiementController extends Controller
         ]);
     }
 
+    public function synthese(Request $request)
+    {
+        $atelierId = $request->query('atelierId', $request->user()->atelier_id);
+        $now = now();
+
+        $encaissementsMois = Paiement::where('atelier_id', $atelierId)
+            ->where('type_paiement', 'CLIENT')
+            ->whereMonth('date_paiement', $now->month)
+            ->whereYear('date_paiement', $now->year)
+            ->sum('montant');
+
+        $nombreModeles = \App\Models\Mesure::where('atelier_id', $atelierId)->count();
+
+        $nombreSorties = \App\Models\Mesure::where('atelier_id', $atelierId)
+            ->whereMonth('date_livraison', $now->month)
+            ->whereYear('date_livraison', $now->year)
+            ->whereNotNull('date_livraison')
+            ->count();
+
+        $montantModeles = \App\Models\Mesure::where('atelier_id', $atelierId)->sum('prix');
+
+        return response()->json([
+            'encaissementsMois' => $encaissementsMois,
+            'nombreModeles'     => $nombreModeles,
+            'nombreSorties'     => $nombreSorties,
+            'montantModeles'    => $montantModeles,
+        ]);
+    }
+
+    public function enregistrerSortie(Request $request, $clientId)
+    {
+        $user = $request->user();
+        Client::where('atelier_id', $user->atelier_id)->findOrFail($clientId);
+
+        $nb = \App\Models\Mesure::where('client_id', $clientId)
+            ->where('atelier_id', $user->atelier_id)
+            ->whereNull('date_livraison')
+            ->update(['date_livraison' => now()]);
+
+        $totalSorties = \App\Models\Mesure::where('atelier_id', $user->atelier_id)
+            ->whereMonth('date_livraison', now()->month)
+            ->whereYear('date_livraison', now()->year)
+            ->whereNotNull('date_livraison')
+            ->count();
+
+        return response()->json([
+            'message'             => $nb . ' habit(s) marqué(s) comme livré(s)',
+            'nbLivres'            => $nb,
+            'nouvellesTotalSorties' => $totalSorties,
+        ]);
+    }
+
     public function recouvrementMensuel(Request $request)
     {
         $atelierId = $request->query('atelierId', $request->user()->atelier_id);

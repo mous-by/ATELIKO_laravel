@@ -783,3 +783,188 @@ html.dark-theme .product-discount{
 		border-left: 0px solid #ededed;
 	}
 }
+
+/* ATELIKO global dark-mode fixes for Bootstrap/local utility classes */
+html.dark-theme .bg-white,
+html.dark-theme .bg-light,
+html.dark-theme .card-header.bg-white,
+html.dark-theme .card-footer.bg-white,
+html.dark-theme .modal-content,
+html.dark-theme .modal-header,
+html.dark-theme .modal-footer,
+html.dark-theme .list-group-item,
+html.dark-theme .dropdown-menu,
+html.dark-theme .offcanvas,
+html.dark-theme .toast,
+html.dark-theme .accordion-item,
+html.dark-theme .accordion-button,
+html.dark-theme .page-header,
+html.dark-theme .page-header .container-fluid {
+	background-color: #171717 !important;
+	color: #e4e5e6 !important;
+}
+
+html.dark-theme .table,
+html.dark-theme .table > :not(caption) > * > *,
+html.dark-theme .table-light,
+html.dark-theme .table-light > th,
+html.dark-theme .table-light > td,
+html.dark-theme .table thead.table-light th,
+html.dark-theme .table .table-light th {
+	background-color: #20212a !important;
+	color: #e4e5e6 !important;
+	border-color: rgb(255 255 255 / 12%) !important;
+}
+
+html.dark-theme .table-striped > tbody > tr:nth-of-type(odd) > *,
+html.dark-theme .table-hover > tbody > tr:hover > * {
+	background-color: rgb(255 255 255 / 6%) !important;
+	color: #e4e5e6 !important;
+}
+
+html.dark-theme .border,
+html.dark-theme .border-top,
+html.dark-theme .border-end,
+html.dark-theme .border-start,
+html.dark-theme .rounded.border,
+html.dark-theme .shadow-sm.border {
+	border-color: rgb(255 255 255 / 14%) !important;
+}
+
+html.dark-theme .text-dark:not(.btn):not(.badge),
+html.dark-theme .breadcrumb-title,
+html.dark-theme .breadcrumb-item,
+html.dark-theme .breadcrumb-item.active,
+html.dark-theme .card-title,
+html.dark-theme label,
+html.dark-theme .form-label,
+html.dark-theme .fw-bold,
+html.dark-theme .fw-semibold,
+html.dark-theme strong {
+	color: #e4e5e6 !important;
+}
+
+html.dark-theme .text-muted,
+html.dark-theme small.text-muted,
+html.dark-theme .form-text,
+html.dark-theme .breadcrumb-item a,
+html.dark-theme .card-subtitle {
+	color: #b7bbc0 !important;
+}
+
+html.dark-theme .alert:not(.alert-danger):not(.alert-warning):not(.alert-success):not(.alert-info):not(.alert-primary),
+html.dark-theme .alert-secondary,
+html.dark-theme .alert-light {
+	background-color: #20212a !important;
+	border-color: rgb(255 255 255 / 14%) !important;
+	color: #e4e5e6 !important;
+}
+
+html.dark-theme .badge.bg-light,
+html.dark-theme .badge.bg-white,
+html.dark-theme .badge.text-dark {
+	background-color: #2a2c36 !important;
+	color: #e4e5e6 !important;
+	border-color: rgb(255 255 255 / 14%) !important;
+}
+
+html.dark-theme .list-group-item-action {
+	color: #e4e5e6 !important;
+}
+
+html.dark-theme .list-group-item-action:hover,
+html.dark-theme .list-group-item-action:focus {
+	background-color: #272936 !important;
+	color: #ffffff !important;
+}
+
+html.dark-theme .nav-tabs {
+	border-color: rgb(255 255 255 / 14%) !important;
+}
+
+html.dark-theme .nav-tabs .nav-link:not(.active) {
+	color: #b7bbc0 !important;
+	border-color: transparent !important;
+}
+
+html.dark-theme .nav-tabs .nav-link.active {
+	background-color: #20212a !important;
+	color: #ffffff !important;
+	border-color: rgb(255 255 255 / 14%) rgb(255 255 255 / 14%) #20212a !important;
+}
+
+html.dark-theme .btn-light,
+html.dark-theme .btn-outline-light {
+	background-color: #20212a !important;
+	border-color: rgb(255 255 255 / 16%) !important;
+	color: #e4e5e6 !important;
+}
+
+html.dark-theme .hover-bg-light:hover,
+html.dark-theme .transition-hover:hover {
+	background-color: #272936 !important;
+}
+
+html.dark-theme .shadow-sm,
+html.dark-theme .shadow {
+	box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 35%) !important;
+}
+
+/* SweetAlert2 dark mode */
+html.dark-theme .swal2-popup,
+html.dark-theme .swal2-toast {
+	background: #171717 !important;
+	color: #e4e5e6 !important;
+	border: 1px solid rgb(255 255 255 / 14%) !important;
+	box-shadow: 0 1rem 3rem rgb(0 0 0 / 45%) !important;
+}
+
+html.dark-theme .swal2-title,
+html.dark-theme .swal2-html-container,
+html.dark-theme .swal2-content {
+	color: #e4e5e6 !important;
+}
+
+html.dark-theme .swal2-html-container .text-muted,
+html.dark-theme .swal2-popup .text-muted {
+	color: #b7bbc0 !important;
+}
+
+html.dark-theme .swal2-input,
+html.dark-theme .swal2-textarea,
+html.dark-theme .swal2-select,
+html.dark-theme .swal2-file {
+	background: #20212a !important;
+	color: #e4e5e6 !important;
+	border-color: rgb(255 255 255 / 16%) !important;
+	box-shadow: none !important;
+}
+
+html.dark-theme .swal2-input::placeholder,
+html.dark-theme .swal2-textarea::placeholder {
+	color: #9fa5ad !important;
+}
+
+html.dark-theme .swal2-validation-message {
+	background: #2a1f24 !important;
+	color: #ffb8c1 !important;
+}
+
+html.dark-theme .swal2-footer {
+	border-top-color: rgb(255 255 255 / 14%) !important;
+	color: #b7bbc0 !important;
+}
+
+html.dark-theme .swal2-close {
+	color: #b7bbc0 !important;
+}
+
+html.dark-theme .swal2-timer-progress-bar {
+	background: rgb(255 255 255 / 35%) !important;
+}
+
+html.dark-theme .swal2-container .bg-light,
+html.dark-theme .swal2-container .bg-white {
+	background-color: #20212a !important;
+	color: #e4e5e6 !important;
+}

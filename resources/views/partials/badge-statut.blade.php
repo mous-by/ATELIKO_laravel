@@ -13,13 +13,13 @@ $classes = [
 $labels = [
     'EN_ATTENTE' => 'En attente',
     'EN_COURS' => 'En cours',
-    'TERMINE' => 'Terminé',
-    'VALIDE' => 'Validé',
+    'TERMINE' => 'Client a récupéré',
+    'VALIDE' => 'Récupéré',
     'ANNULE' => 'Annulé',
     'PLANIFIE' => 'Planifié',
     'CONFIRME' => 'Confirmé',
     'SOLDE' => 'Soldé',
-    'PRET' => '✓ Prêt à récupérer',
+    'PRET' => 'Habit prêt',
 ];
 $cls = $classes[$statut] ?? 'bg-secondary';
 $lbl = $labels[$statut] ?? $statut;

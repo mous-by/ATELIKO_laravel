@@ -178,6 +178,7 @@ class AffectationController extends Controller
             'mesure' => $a->relationLoaded('mesure') && $a->mesure ? [
                 'id' => $a->mesure->id,
                 'typeVetement' => $a->mesure->type_vetement,
+                'modeleNom' => $a->mesure->modele_nom,
                 'prix' => $a->mesure->prix,
                 'sexe' => $a->mesure->sexe,
             ] : null,

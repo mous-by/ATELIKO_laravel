@@ -30,7 +30,7 @@
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 @if($u->photo_path)
-                                    <img src="{{ asset('storage/' . $u->photo_path) }}" class="avatar-img" alt="">
+                                    <img src="{{ asset($u->photo_path) }}" class="avatar-img" alt="">
                                 @else
                                     <div class="avatar-img bg-primary d-flex align-items-center justify-content-center text-white">
                                         {{ strtoupper(substr($u->prenom, 0, 1)) }}

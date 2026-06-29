@@ -55,7 +55,7 @@ html.dark-theme #detailContent .alert-secondary{background:#242632;border-color:
 let editingClient=null,editingMeasure=null,isCreatingMeasure=false,editModelPhoto=null,editHabitPhoto=null;
 const isTailleur=@json(Auth::user()->isTailleur());
 const qs=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];
-const storageUrl=p=>p?`{{ asset('storage') }}/${String(p).replace(/^\/+|storage\//g,'')}`:null;
+const storageUrl=p=>p?`{{ rtrim(asset(''), '/') }}/${String(p).replace(/^\/+|storage\//g,'')}`:null;
 const sortedMeasures=c=>[...(c?.mesures||[])].sort((a,b)=>new Date(b.date_mesure||0)-new Date(a.date_mesure||0));
 const modelName=(m,i)=>m?.modele_nom?.trim()||`Modèle #${i+1}`;
 const modelImage=m=>storageUrl(m?.photo_path)||(m?.sexe==='Homme'?`{{ asset('assets/images/model3.jpg') }}`:`{{ asset('assets/images/model4.jpg') }}`);

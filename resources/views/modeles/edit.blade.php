@@ -37,7 +37,7 @@
                             <label class="form-label">Nouvelle photo</label>
                             @if($modele->photo_path)
                                 <div class="mb-2">
-                                    <img src="{{ asset('storage/' . $modele->photo_path) }}" style="height: 80px; object-fit: cover; border-radius: 6px;">
+                                    <img src="{{ asset($modele->photo_path) }}" style="height: 80px; object-fit: cover; border-radius: 6px;">
                                 </div>
                             @endif
                             <input type="file" name="photo" class="form-control" accept="image/*">

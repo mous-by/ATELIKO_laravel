@@ -300,7 +300,7 @@ class ClientController extends Controller
             'email' => $c->email,
             'sexe' => $c->sexe,
             'photo' => $c->photo,
-            'photoUrl' => $c->photo ? asset('storage/' . $c->photo) : null,
+            'photoUrl' => $c->photo ? asset($c->photo) : null,
             'dateCreation' => $c->date_creation,
             'atelierId' => $c->atelier_id,
             'nbMesures' => $c->mesures->count(),
@@ -371,7 +371,7 @@ class ClientController extends Controller
             'modeleReferenceId' => $m->modele_reference_id,
             'modeleNom' => $m->modele_nom,
             'photoPath' => $m->photo_path,
-            'photoUrl' => $m->photo_path ? asset('storage/' . $m->photo_path) : null,
+            'photoUrl' => $m->photo_path ? asset($m->photo_path) : null,
             'habitPhotoPath' => $m->habit_photo_path,
             'audioDescriptionPath' => $m->audio_description_path,
             'epaule' => $m->epaule, 'manche' => $m->manche,
@@ -470,7 +470,7 @@ class ClientController extends Controller
             'categorie' => $m->categorie,
             'prix' => $m->prix,
             'photoPath' => $m->photo_path,
-            'photoUrl' => $m->photo_path ? asset('storage/' . $m->photo_path) : null,
+            'photoUrl' => $m->photo_path ? asset($m->photo_path) : null,
             'estActif' => $m->est_actif,
         ];
     }

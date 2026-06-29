@@ -6,7 +6,7 @@
 <div class="row g-4">
     <div class="col-md-5">
         @if($modele->photo_path)
-            <img src="{{ asset('storage/' . $modele->photo_path) }}" class="img-fluid rounded shadow" alt="{{ $modele->nom }}">
+            <img src="{{ asset($modele->photo_path) }}" class="img-fluid rounded shadow" alt="{{ $modele->nom }}">
         @else
             <div class="bg-light rounded d-flex align-items-center justify-content-center text-muted" style="height: 300px;">
                 <i class="bx bx-image fs-1"></i>
@@ -14,7 +14,7 @@
         @endif
         @if($modele->video_path)
             <video class="w-100 mt-3 rounded" controls>
-                <source src="{{ asset('storage/' . $modele->video_path) }}">
+                <source src="{{ asset($modele->video_path) }}">
             </video>
         @endif
     </div>

@@ -297,7 +297,7 @@
         </div>
         <div class="user-box dropdown">
             <a class="d-flex align-items-center nav-link dropdown-toggle dropdown-toggle-nocaret" href="#" role="button" data-bs-toggle="dropdown">
-                @if($user->photo_path)<img src="{{ asset('storage/' . $user->photo_path) }}" class="user-img" alt="Photo de profil">@else<img src="{{ asset('assets/images/default-user.jpg') }}" class="user-img" alt="Photo de profil">@endif
+                @if($user->photo_path)<img src="{{ asset($user->photo_path) }}" class="user-img" alt="Photo de profil">@else<img src="{{ asset('assets/images/default-user.jpg') }}" class="user-img" alt="Photo de profil">@endif
                 <div class="user-info ps-3"><p class="user-name mb-0">{{ $user->prenom }} {{ $user->nom }}</p><p class="designattion mb-0">{{ $user->role }}</p></div>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">

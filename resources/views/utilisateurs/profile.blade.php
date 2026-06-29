@@ -8,7 +8,7 @@
         <div class="card text-center">
             <div class="card-body pt-4">
                 @if($user->photo_path)
-                    <img src="{{ asset('storage/' . $user->photo_path) }}" class="rounded-circle mb-2"
+                    <img src="{{ asset($user->photo_path) }}" class="rounded-circle mb-2"
                          style="width: 100px; height: 100px; object-fit: cover;">
                     <div class="mb-3">
                         <form action="{{ route('profile.photo.delete') }}" method="POST"

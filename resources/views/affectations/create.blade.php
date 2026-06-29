@@ -143,7 +143,7 @@ $clientsForJs = $clients->map(function($c) {
 @push('scripts')
 <script>
 const clientsData = @json($clientsForJs);
-const storageBase = @json(asset('storage'));
+const storageBase = @json(rtrim(asset(''), '/'));
 const fallbackModel = @json(asset('assets/images/model4.jpg'));
 let selectedClients = new Set();
 let selectedMesures = new Set();

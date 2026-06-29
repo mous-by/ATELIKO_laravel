@@ -375,7 +375,7 @@
                                     <td>
                                         @if($p->preuve_url)
                                             <button class="btn btn-sm btn-outline-primary"
-                                                onclick="showProof('{{ asset('storage/' . $p->preuve_url) }}', '{{ $p->reference }}', {{ $p->id }}, {{ $statutUpper === 'PENDING' ? 'true' : 'false' }})"
+                                                onclick="showProof('{{ asset($p->preuve_url) }}', '{{ $p->reference }}', {{ $p->id }}, {{ $statutUpper === 'PENDING' ? 'true' : 'false' }})"
                                                 title="Voir la preuve">
                                                 <i class="bx bx-search-alt"></i> Voir
                                             </button>

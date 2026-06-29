@@ -46,7 +46,7 @@
                             <label class="form-label fw-medium">Nouvelle photo</label>
                             @if($client->photo)
                                 <div class="mb-2">
-                                    <img src="{{ asset('storage/' . $client->photo) }}" style="height: 60px; border-radius: 50%;">
+                                    <img src="{{ asset($client->photo) }}" style="height: 60px; border-radius: 50%;">
                                     <small class="text-muted ms-2">Photo actuelle</small>
                                 </div>
                             @endif

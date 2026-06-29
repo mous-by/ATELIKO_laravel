@@ -158,7 +158,7 @@ class ModeleController extends Controller
             'categorie' => $m->categorie,
             'prix' => $m->prix,
             'photoPath' => $m->photo_path,
-            'photoUrl' => $m->photo_path ? asset('storage/' . $m->photo_path) : null,
+            'photoUrl' => $m->photo_path ? asset($m->photo_path) : null,
             'estActif' => $m->est_actif,
             'atelierId' => $m->atelier_id,
             'dateCreation' => $m->date_creation,

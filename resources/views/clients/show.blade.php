@@ -12,7 +12,7 @@
         <div class="card text-center">
             <div class="card-body pt-4">
                 @if($client->photo)
-                    <img src="{{ asset('storage/' . $client->photo) }}" class="rounded-circle mb-3"
+                    <img src="{{ asset($client->photo) }}" class="rounded-circle mb-3"
                          style="width: 100px; height: 100px; object-fit: cover;" alt="">
                 @else
                     <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3"

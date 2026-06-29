@@ -258,7 +258,7 @@ class AdminSubscriptionController extends Controller
             'status' => $payment->statut,
             'modePaiement' => $payment->mode_paiement,
             'transactionRef' => $payment->transaction_ref,
-            'preuveUrl' => $payment->preuve_url ? asset('storage/' . $payment->preuve_url) : null,
+            'preuveUrl' => $payment->preuve_url ? asset($payment->preuve_url) : null,
             'reviewNote' => $payment->review_note,
             'atelier' => $payment->abonnement?->atelier ? [
                 'id' => $payment->abonnement->atelier->id,

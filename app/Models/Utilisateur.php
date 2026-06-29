@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
 class Utilisateur extends Authenticatable
@@ -29,6 +31,13 @@ class Utilisateur extends Authenticatable
     public function getAuthPassword()
     {
         return $this->mot_de_passe;
+    }
+
+    protected function photoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null,
+        );
     }
 
     public function atelier()

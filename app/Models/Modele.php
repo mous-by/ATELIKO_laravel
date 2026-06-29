@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Modele extends Model
 {
@@ -24,6 +26,20 @@ class Modele extends Model
         'date_creation' => 'datetime',
         'date_modification' => 'datetime',
     ];
+
+    protected function photoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null,
+        );
+    }
+
+    protected function videoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->video_path ? Storage::disk('public')->url($this->video_path) : null,
+        );
+    }
 
     public function atelier()
     {

@@ -71,7 +71,7 @@ class AuthController extends Controller
                 'nom' => $utilisateur->atelier->nom,
             ] : null,
             'permissions' => $utilisateur->permissions->pluck('code'),
-            'photoPath' => $utilisateur->photo_path,
+            'photoPath' => $utilisateur->photo_url,
         ]);
     }
 
@@ -95,7 +95,7 @@ class AuthController extends Controller
             'permissions' => $utilisateur->permissions->pluck('code'),
             'atelierId' => $utilisateur->atelier_id,
             'atelierNom' => $utilisateur->atelier?->nom,
-            'photoPath' => $utilisateur->photo_path,
+            'photoPath' => $utilisateur->photo_url,
             'actif' => $utilisateur->actif,
         ]);
     }

@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Mesure extends Model
 {
@@ -41,6 +43,20 @@ class Mesure extends Model
         'longueur_fesse_robe' => 'float',
         'longueur_pantalon' => 'float', 'cuisse' => 'float', 'corps' => 'float',
     ];
+
+    protected function photoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null,
+        );
+    }
+
+    protected function habitPhotoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->habit_photo_path ? Storage::disk('public')->url($this->habit_photo_path) : null,
+        );
+    }
 
     public function client()
     {

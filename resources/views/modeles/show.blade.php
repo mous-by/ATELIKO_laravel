@@ -5,8 +5,8 @@
 @section('content')
 <div class="row g-4">
     <div class="col-md-5">
-        @if($modele->photo_path)
-            <img src="{{ asset($modele->photo_path) }}" class="img-fluid rounded shadow" alt="{{ $modele->nom }}">
+        @if($modele->photo_url)
+            <img src="{{ $modele->photo_url }}" class="img-fluid rounded shadow" alt="{{ $modele->nom }}">
         @else
             <div class="bg-light rounded d-flex align-items-center justify-content-center text-muted" style="height: 300px;">
                 <i class="bx bx-image fs-1"></i>

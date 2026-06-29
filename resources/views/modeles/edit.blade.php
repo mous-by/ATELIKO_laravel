@@ -35,9 +35,9 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Nouvelle photo</label>
-                            @if($modele->photo_path)
+                            @if($modele->photo_url)
                                 <div class="mb-2">
-                                    <img src="{{ asset($modele->photo_path) }}" style="height: 80px; object-fit: cover; border-radius: 6px;">
+                                    <img src="{{ $modele->photo_url }}" style="height: 80px; object-fit: cover; border-radius: 6px;">
                                 </div>
                             @endif
                             <input type="file" name="photo" class="form-control" accept="image/*">

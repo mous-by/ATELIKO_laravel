@@ -330,8 +330,8 @@
                     @forelse($modeles as $m)
                     <div class="col-6 col-md-4 col-xl-3 modele-item" data-cat="{{ $m->categorie }}">
                         <div class="modele-card card h-100" data-id="{{ $m->id }}" data-nom="{{ $m->nom }}" data-prix="{{ $m->prix }}" data-cat="{{ $m->categorie }}">
-                            @if($m->photo_path)
-                                <img src="{{ asset($m->photo_path) }}" class="modele-img">
+                            @if($m->photo_url)
+                                <img src="{{ $m->photo_url }}" class="modele-img">
                             @else
                                 <div class="modele-img bg-light d-flex align-items-center justify-content-center text-muted">
                                     <i class="bx bx-image fs-2"></i>

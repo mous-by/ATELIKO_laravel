@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Client extends Model
 {
@@ -45,6 +47,13 @@ class Client extends Model
     public function rendezvous()
     {
         return $this->hasMany(Rendezvous::class, 'client_id');
+    }
+
+    protected function photoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->photo ? Storage::disk('public')->url($this->photo) : null,
+        );
     }
 
     public function getMontantTotalAttribute(): float

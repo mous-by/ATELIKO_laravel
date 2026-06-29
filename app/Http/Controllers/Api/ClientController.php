@@ -371,8 +371,9 @@ class ClientController extends Controller
             'modeleReferenceId' => $m->modele_reference_id,
             'modeleNom' => $m->modele_nom,
             'photoPath' => $m->photo_path,
-            'photoUrl' => $m->photo_path ? asset($m->photo_path) : null,
+            'photoUrl' => $m->photo_url,
             'habitPhotoPath' => $m->habit_photo_path,
+            'habitPhotoUrl' => $m->habit_photo_url,
             'audioDescriptionPath' => $m->audio_description_path,
             'epaule' => $m->epaule, 'manche' => $m->manche,
             'poitrine' => $m->poitrine, 'taille' => $m->taille,
@@ -470,7 +471,7 @@ class ClientController extends Controller
             'categorie' => $m->categorie,
             'prix' => $m->prix,
             'photoPath' => $m->photo_path,
-            'photoUrl' => $m->photo_path ? asset($m->photo_path) : null,
+            'photoUrl' => $m->photo_url,
             'estActif' => $m->est_actif,
         ];
     }

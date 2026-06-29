@@ -29,8 +29,8 @@
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                @if($u->photo_path)
-                                    <img src="{{ asset($u->photo_path) }}" class="avatar-img" alt="">
+                                @if($u->photo_url)
+                                    <img src="{{ $u->photo_url }}" class="avatar-img" alt="">
                                 @else
                                     <div class="avatar-img bg-primary d-flex align-items-center justify-content-center text-white">
                                         {{ strtoupper(substr($u->prenom, 0, 1)) }}

@@ -153,7 +153,7 @@ class UtilisateurController extends Controller
             'email' => $utilisateur->email,
             'telephone' => $utilisateur->telephone,
             'role' => $utilisateur->role,
-            'photoPath' => $utilisateur->photo_path,
+            'photoPath' => $utilisateur->photo_url,
             'atelier' => $utilisateur->atelier ? [
                 'id' => $utilisateur->atelier->id,
                 'nom' => $utilisateur->atelier->nom,
@@ -189,7 +189,7 @@ class UtilisateurController extends Controller
             'telephone' => $u->telephone,
             'role' => $u->role,
             'actif' => $u->actif,
-            'photoPath' => $u->photo_path,
+            'photoPath' => $u->photo_url,
             'atelierId' => $u->atelier_id,
             'atelierNom' => $u->atelier?->nom,
             'permissions' => $u->relationLoaded('permissions')

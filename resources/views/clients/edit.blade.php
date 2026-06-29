@@ -44,9 +44,9 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-medium">Nouvelle photo</label>
-                            @if($client->photo)
+                            @if($client->photo_url)
                                 <div class="mb-2">
-                                    <img src="{{ asset($client->photo) }}" style="height: 60px; border-radius: 50%;">
+                                    <img src="{{ $client->photo_url }}" style="height: 60px; border-radius: 50%;">
                                     <small class="text-muted ms-2">Photo actuelle</small>
                                 </div>
                             @endif

@@ -24,7 +24,7 @@
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                <img src="{{ $u->photo_path ? asset($u->photo_path) : asset('assets/images/default-user.jpg') }}" class="avatar-img" alt="">
+                                <img src="{{ $u->photo_url ?? asset('assets/images/default-user.jpg') }}" class="avatar-img" alt="">
                                 <strong>{{ $u->prenom }} {{ $u->nom }}</strong>
                             </div>
                         </td>

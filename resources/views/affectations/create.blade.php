@@ -126,14 +126,13 @@ $clientsForJs = $clients->map(function($c) {
         'name' => trim($c->prenom.' '.$c->nom),
         'contact' => $c->contact,
         'mesures' => $c->mesures->map(function($m) {
-            $photo = $m->photo_path ?: ($m->modeleReference?->photo_path);
             return [
                 'id' => $m->id,
                 'type' => $m->type_vetement ?: 'Modèle',
                 'name' => $m->modele_nom ?: ($m->modeleReference?->nom ?: ($m->type_vetement ?: 'Modèle')),
                 'price' => $m->prix,
-                'photo' => $photo,
-                'habitPhoto' => $m->habit_photo_path,
+                'photo' => $m->photo_url ?: $m->modeleReference?->photo_url,
+                'habitPhoto' => $m->habit_photo_url,
             ];
         })->values()->toArray(),
     ];
@@ -143,7 +142,7 @@ $clientsForJs = $clients->map(function($c) {
 @push('scripts')
 <script>
 const clientsData = @json($clientsForJs);
-const storageBase = @json(rtrim(asset(''), '/'));
+const storageBase = @json(rtrim(asset('storage'), '/'));
 const fallbackModel = @json(asset('assets/images/model4.jpg'));
 let selectedClients = new Set();
 let selectedMesures = new Set();
@@ -153,7 +152,9 @@ function escapeHtml(value) {
 }
 
 function mediaUrl(path) {
-    return path ? `${storageBase}/${path}` : fallbackModel;
+    if (!path) return fallbackModel;
+    if (/^https?:\/\//i.test(path)) return path;
+    return `${storageBase}/${path.replace(/^\/+/, '')}`;
 }
 
 function money(value) {

@@ -2,6 +2,17 @@
 @section('title', 'Permissions - ' . $utilisateur->prenom)
 @section('page-title', 'Permissions de ' . $utilisateur->prenom . ' ' . $utilisateur->nom)
 
+@push('styles')
+<style>
+html.dark-theme .perm-card-header      { background: #2a2d3e !important; color: #e4e5e6; border-color: #3a3d50; }
+html.dark-theme .perm-card-header .btn-outline-primary   { color: #6ea8fe; border-color: #6ea8fe; }
+html.dark-theme .perm-card-header .btn-outline-secondary { color: #adb5bd; border-color: #6c757d; }
+html.dark-theme .form-check.border     { border-color: #3a3d50 !important; background: rgba(255,255,255,.03); }
+html.dark-theme .perm-code             { background: rgba(13,110,253,.18) !important; color: #a8c7fa !important; }
+html.dark-theme .form-check-label .text-muted { color: #8a9bb0 !important; }
+</style>
+@endpush
+
 @section('content')
 @php
 $modules = [
@@ -60,7 +71,7 @@ $userPermCodes = $utilisateur->permissions->pluck('code')->toArray();
             @endphp
             @if($modulePerms->isNotEmpty())
             <div class="card mb-3">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="card-header perm-card-header d-flex justify-content-between align-items-center">
                     <span class="fw-semibold">
                         <i class="bx bx-folder-open me-2 text-primary"></i>{{ $moduleNom }}
                     </span>
@@ -89,7 +100,7 @@ $userPermCodes = $utilisateur->permissions->pluck('code')->toArray();
                                        data-module="{{ $moduleNom }}"
                                        {{ in_array($perm->code, $userPermCodes) ? 'checked' : '' }}>
                                 <label class="form-check-label w-100" for="perm_{{ $perm->id }}">
-                                    <code class="bg-light px-1 rounded small d-block mb-1">{{ $perm->code }}</code>
+                                    <code class="perm-code bg-light px-1 rounded small d-block mb-1">{{ $perm->code }}</code>
                                     @if($perm->description)
                                         <small class="text-muted">{{ $perm->description }}</small>
                                     @endif

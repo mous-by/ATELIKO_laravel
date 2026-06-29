@@ -25,6 +25,20 @@ Route::post('/logout', [AuthWebController::class, 'logout'])->name('logout');
 // Paiement d'abonnement depuis la page de login (sans session auth)
 Route::post('/abonnement/paiement-bloque', [AbonnementWebController::class, 'storeFromLogin'])->name('abonnement.paiement.blocked');
 
+// Compatibility for old uploaded-file URLs generated as /storage/{folder}/{file}.
+Route::get('/storage/{path}', function (string $path) {
+    $root = realpath(public_path());
+    $file = $root ? realpath($root . DIRECTORY_SEPARATOR . $path) : false;
+    $rootPrefix = $root ? $root . DIRECTORY_SEPARATOR : '';
+
+    abort_unless(
+        $root && $file && strncmp($file, $rootPrefix, strlen($rootPrefix)) === 0 && is_file($file),
+        404
+    );
+
+    return response()->file($file);
+})->where('path', '.*');
+
 // Redirection racine
 Route::get('/', fn() => redirect()->route('dashboard'));
 

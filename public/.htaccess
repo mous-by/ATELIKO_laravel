@@ -5,6 +5,10 @@
 
     RewriteEngine On
 
+    # Forward HTTPS to PHP so Laravel detects it correctly behind LWS proxy
+    RewriteCond %{HTTP:X-Forwarded-Proto} https
+    RewriteRule .* - [E=HTTPS:on]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

@@ -27,16 +27,23 @@ Route::post('/abonnement/paiement-bloque', [AbonnementWebController::class, 'sto
 
 // Compatibility for old uploaded-file URLs generated as /storage/{folder}/{file}.
 Route::get('/storage/{path}', function (string $path) {
-    $root = realpath(public_path());
-    $file = $root ? realpath($root . DIRECTORY_SEPARATOR . $path) : false;
-    $rootPrefix = $root ? $root . DIRECTORY_SEPARATOR : '';
+    $roots = [
+        public_path(),
+        public_path('storage'),
+        storage_path('app/public'),
+    ];
 
-    abort_unless(
-        $root && $file && strncmp($file, $rootPrefix, strlen($rootPrefix)) === 0 && is_file($file),
-        404
-    );
+    foreach ($roots as $candidateRoot) {
+        $root = realpath($candidateRoot);
+        $file = $root ? realpath($root . DIRECTORY_SEPARATOR . $path) : false;
+        $rootPrefix = $root ? $root . DIRECTORY_SEPARATOR : '';
 
-    return response()->file($file);
+        if ($root && $file && strncmp($file, $rootPrefix, strlen($rootPrefix)) === 0 && is_file($file)) {
+            return response()->file($file);
+        }
+    }
+
+    abort(404);
 })->where('path', '.*');
 
 // Redirection racine

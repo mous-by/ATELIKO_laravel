@@ -59,6 +59,17 @@ class AuthWebController extends Controller
         }
 
         $utilisateur = Utilisateur::whereIn('telephone', $phoneCandidates)->first();
+
+        // Fallback : le numéro stocké peut contenir des espaces ou tirets (ex: "74 74 56 69")
+        // On normalise la colonne DB pour comparer les chiffres seuls
+        if (!$utilisateur && count($phoneCandidates) > 0) {
+            $placeholders = implode(',', array_fill(0, count($phoneCandidates), '?'));
+            $utilisateur = Utilisateur::whereRaw(
+                "REPLACE(REPLACE(REPLACE(telephone, ' ', ''), '-', ''), '.', '') IN ($placeholders)",
+                $phoneCandidates
+            )->first();
+        }
+
         $passwordMatches = $utilisateur
             && Hash::check($request->password, $utilisateur->mot_de_passe);
 

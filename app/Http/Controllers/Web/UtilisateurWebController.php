@@ -73,14 +73,27 @@ class UtilisateurWebController extends Controller
     public function update(Request $request, $id)
     {
         $utilisateur = Utilisateur::findOrFail($id);
-        $request->validate([
+        $user = Auth::user();
+        $roles = $this->rolesDisponiblesPour($user);
+
+        $rules = [
             'prenom'    => 'required|string|min:2|max:50',
             'nom'       => 'required|string|min:2|max:50',
+            'email'     => 'required|email|unique:utilisateurs,email,' . $id,
             'telephone' => 'nullable|string|unique:utilisateurs,telephone,' . $id,
-        ], $this->validationMessages(), $this->validationAttributes());
+            'role'      => 'required|in:' . implode(',', $roles),
+            'mot_de_passe' => 'nullable|min:4|confirmed',
+        ];
 
-        $utilisateur->update($request->only(['prenom', 'nom', 'telephone', 'role']));
-        return redirect()->route('utilisateurs.index')->with('success', 'Utilisateur mis à jour');
+        $request->validate($rules, $this->validationMessages(), $this->validationAttributes());
+
+        $data = $request->only(['prenom', 'nom', 'email', 'telephone', 'role']);
+        if ($request->filled('mot_de_passe')) {
+            $data['mot_de_passe'] = Hash::make($request->mot_de_passe);
+        }
+
+        $utilisateur->update($data);
+        return back()->with('success', 'Utilisateur mis à jour');
     }
 
     public function destroy($id)
@@ -111,7 +124,11 @@ class UtilisateurWebController extends Controller
             ? Permission::pluck('id')
             : Permission::whereIn('code', $request->permissions ?? [])->pluck('id');
         $utilisateur->permissions()->sync($permissionIds);
-        return redirect()->route('utilisateurs.permissions', $id)->with('success', 'Permissions mises à jour');
+
+        // Rester sur la page d'origine (assigner ou standalone)
+        $previous = url()->previous();
+        $fallback = route('utilisateurs.permissions', $id);
+        return redirect($previous ?: $fallback)->with('success', 'Permissions mises à jour');
     }
 
     public function profile()

@@ -56,6 +56,17 @@
                         </td>
                         <td>
                             <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-outline-primary" title="Modifier"
+                                    data-bs-toggle="modal" data-bs-target="#modalEditUtilisateur"
+                                    data-id="{{ $u->id }}"
+                                    data-prenom="{{ $u->prenom }}"
+                                    data-nom="{{ $u->nom }}"
+                                    data-email="{{ $u->email }}"
+                                    data-telephone="{{ $u->telephone }}"
+                                    data-role="{{ $u->role }}"
+                                    data-atelier-id="{{ $u->atelier_id }}">
+                                    <i class="bx bx-edit"></i>
+                                </button>
                                 <a href="{{ route('utilisateurs.permissions', $u->id) }}" class="btn btn-sm btn-outline-info" title="Permissions">
                                     <i class="bx bx-key"></i>
                                 </a>
@@ -152,15 +163,97 @@
         </div>
     </div>
 </div>
+<!-- Modal Modifier utilisateur -->
+<div class="modal fade" id="modalEditUtilisateur" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bx bx-edit me-2"></i>Modifier l'utilisateur</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditUtilisateur" method="POST">
+                @csrf @method('PUT')
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-medium">Prénom *</label>
+                            <input type="text" name="prenom" id="edit_prenom" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-medium">Nom *</label>
+                            <input type="text" name="nom" id="edit_nom" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Email *</label>
+                            <input type="email" name="email" id="edit_email" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Téléphone</label>
+                            <input type="text" name="telephone" id="edit_telephone" class="form-control">
+                        </div>
+                        @if(Auth::user()->isSuperAdmin())
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Atelier *</label>
+                            <select name="atelier_id" id="edit_atelier_id" class="form-select">
+                                <option value="">-- Choisir un atelier --</option>
+                                @foreach($ateliers as $atelier)
+                                <option value="{{ $atelier->id }}">{{ $atelier->nom }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
+                        <div class="col-6">
+                            <label class="form-label fw-medium">Rôle *</label>
+                            <select name="role" id="edit_role" class="form-select" required>
+                                @foreach($roles as $role)
+                                <option value="{{ $role }}">{{ $role }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-medium">Nouveau mot de passe</label>
+                            <input type="password" name="mot_de_passe" class="form-control" minlength="4" placeholder="Laisser vide = inchangé">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Confirmer le mot de passe</label>
+                            <input type="password" name="mot_de_passe_confirmation" class="form-control" minlength="4">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="bx bx-check-circle me-1"></i>Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
-@if($errors->any())
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var el = document.getElementById('modalNouvelUtilisateur');
-    if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+    @if($errors->any())
+    var elNew = document.getElementById('modalNouvelUtilisateur');
+    if (elNew) new bootstrap.Modal(elNew).show();
+    @endif
+
+    var modalEditEl = document.getElementById('modalEditUtilisateur');
+    if (modalEditEl) {
+        modalEditEl.addEventListener('show.bs.modal', function (event) {
+            var btn = event.relatedTarget;
+            if (!btn) return;
+            document.getElementById('edit_prenom').value    = btn.dataset.prenom    || '';
+            document.getElementById('edit_nom').value       = btn.dataset.nom       || '';
+            document.getElementById('edit_email').value     = btn.dataset.email     || '';
+            document.getElementById('edit_telephone').value = btn.dataset.telephone || '';
+            var roleEl = document.getElementById('edit_role');
+            if (roleEl) roleEl.value = btn.dataset.role || '';
+            var atelierEl = document.getElementById('edit_atelier_id');
+            if (atelierEl) atelierEl.value = btn.dataset.atelierId || '';
+            document.getElementById('formEditUtilisateur').action = '/utilisateurs/' + btn.dataset.id;
+        });
+    }
 });
 </script>
 @endpush
-@endif

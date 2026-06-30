@@ -34,6 +34,17 @@
                         <td>{{ $u->atelier?->nom ?: '—' }}</td>
                         <td><span class="badge {{ $u->actif ? 'bg-success' : 'bg-secondary' }}">{{ $u->actif ? 'Actif' : 'Inactif' }}</span></td>
                         <td>
+                            <button class="btn btn-sm btn-outline-primary" title="Modifier"
+                                data-bs-toggle="modal" data-bs-target="#modalParamEditUser"
+                                data-id="{{ $u->id }}"
+                                data-prenom="{{ $u->prenom }}"
+                                data-nom="{{ $u->nom }}"
+                                data-email="{{ $u->email }}"
+                                data-telephone="{{ $u->telephone }}"
+                                data-role="{{ $u->role }}"
+                                data-atelier-id="{{ $u->atelier_id }}">
+                                <i class="bx bx-edit"></i>
+                            </button>
                             <a class="btn btn-sm btn-outline-info" href="{{ route('parametres.index', ['section'=>'assigner','utilisateur'=>$u->id]) }}">
                                 <i class="bx bx-key"></i>
                             </a>
@@ -54,16 +65,100 @@
     </div>
 </div>
 
-@if($errors->any())
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var el = document.getElementById('userCreate');
-    if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+    @if($errors->any())
+    var elCreate = document.getElementById('userCreate');
+    if (elCreate) new bootstrap.Modal(elCreate).show();
+    @endif
+
+    // Pré-remplir le modal edit quand Bootstrap l'ouvre
+    var modalEditEl = document.getElementById('modalParamEditUser');
+    if (modalEditEl) {
+        modalEditEl.addEventListener('show.bs.modal', function (event) {
+            var btn = event.relatedTarget;
+            if (!btn) return;
+            document.getElementById('param_edit_prenom').value    = btn.dataset.prenom    || '';
+            document.getElementById('param_edit_nom').value       = btn.dataset.nom       || '';
+            document.getElementById('param_edit_email').value     = btn.dataset.email     || '';
+            document.getElementById('param_edit_telephone').value = btn.dataset.telephone || '';
+            var roleEl = document.getElementById('param_edit_role');
+            if (roleEl) roleEl.value = btn.dataset.role || '';
+            var atelierEl = document.getElementById('param_edit_atelier_id');
+            if (atelierEl) atelierEl.value = btn.dataset.atelierId || '';
+            document.getElementById('formParamEditUser').action = '/utilisateurs/' + btn.dataset.id;
+        });
+    }
 });
 </script>
 @endpush
-@endif
+
+<!-- Modal Modifier utilisateur -->
+<div class="modal fade" id="modalParamEditUser" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bx bx-edit me-2"></i>Modifier l'utilisateur</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formParamEditUser" method="POST">
+                @csrf @method('PUT')
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-medium">Prénom *</label>
+                            <input type="text" name="prenom" id="param_edit_prenom" class="form-control" required>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-medium">Nom *</label>
+                            <input type="text" name="nom" id="param_edit_nom" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Email *</label>
+                            <input type="email" name="email" id="param_edit_email" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Téléphone</label>
+                            <input type="text" name="telephone" id="param_edit_telephone" class="form-control">
+                        </div>
+                        @if($user->isSuperAdmin())
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Atelier</label>
+                            <select name="atelier_id" id="param_edit_atelier_id" class="form-select">
+                                <option value="">-- Choisir un atelier --</option>
+                                @foreach($ateliers as $atelier)
+                                <option value="{{ $atelier->id }}">{{ $atelier->nom }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
+                        <div class="col-sm-6">
+                            <label class="form-label fw-medium">Rôle *</label>
+                            <select name="role" id="param_edit_role" class="form-select" required>
+                                @foreach($roles as $role)
+                                <option value="{{ $role }}">{{ $role }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-medium">Nouveau mot de passe</label>
+                            <input type="password" name="mot_de_passe" class="form-control" minlength="4" placeholder="Laisser vide = inchangé">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Confirmer le mot de passe</label>
+                            <input type="password" name="mot_de_passe_confirmation" class="form-control" minlength="4">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="bx bx-check-circle me-1"></i>Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <div class="modal fade" id="userCreate" tabindex="-1">
     <div class="modal-dialog modal-lg">

@@ -31,18 +31,40 @@ class Mesure extends Model
     ];
 
     protected $casts = [
-        'affecte' => 'boolean',
+        'affecte'    => 'boolean',
         'date_mesure' => 'date',
-        'prix' => 'float',
-        'epaule' => 'float', 'manche' => 'float', 'poitrine' => 'float',
-        'taille' => 'float', 'longueur' => 'float', 'fesse' => 'float',
-        'tour_manche' => 'float', 'longueur_poitrine' => 'float',
-        'longueur_taille' => 'float', 'longueur_fesse' => 'float',
-        'longueur_jupe' => 'float', 'ceinture' => 'float',
-        'longueur_poitrine_robe' => 'float', 'longueur_taille_robe' => 'float',
-        'longueur_fesse_robe' => 'float',
-        'longueur_pantalon' => 'float', 'cuisse' => 'float', 'corps' => 'float',
+        'prix'       => 'float',
     ];
+
+    private const MESURE_FIELDS = [
+        'epaule', 'manche', 'poitrine', 'taille', 'longueur', 'fesse',
+        'tour_manche', 'longueur_poitrine', 'longueur_taille', 'longueur_fesse',
+        'longueur_jupe', 'ceinture',
+        'longueur_poitrine_robe', 'longueur_taille_robe', 'longueur_fesse_robe',
+        'longueur_pantalon', 'cuisse', 'corps',
+    ];
+
+    public function setAttribute($key, $value): mixed
+    {
+        if (in_array($key, self::MESURE_FIELDS, true)) {
+            $value = $this->normalizeMesureValue($value);
+        }
+        return parent::setAttribute($key, $value);
+    }
+
+    private function normalizeMesureValue(mixed $val): ?string
+    {
+        if ($val === null || $val === '') return null;
+        $val = str_replace(',', '.', trim((string) $val));
+        if (str_contains($val, '|')) {
+            $parts = array_values(array_filter(
+                array_map(fn($p) => trim(str_replace(',', '.', $p)), explode('|', $val, 2)),
+                fn($p) => $p !== ''
+            ));
+            return count($parts) === 2 ? $parts[0] . ' | ' . $parts[1] : ($parts[0] ?? null);
+        }
+        return $val !== '' ? $val : null;
+    }
 
     protected function photoUrl(): Attribute
     {

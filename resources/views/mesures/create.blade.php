@@ -20,6 +20,8 @@
 .modele-img { width: 100%; height: 130px; object-fit: cover; border-radius: 8px 8px 0 0; }
 .measure-input { font-size: .88rem; }
 .section-badge { font-size: .75rem; background: #e8f0fe; color: #0d6efd; border-radius: 20px; padding: .2rem .7rem; }
+.btn-dual-toggle { padding: 0 6px; font-size: 1rem; line-height: 1; min-width: 26px; }
+.measure-input-2 { font-size: .82rem; }
 </style>
 @endpush
 
@@ -242,7 +244,14 @@
             ] as [$field,$label])
             <div class="col-6 col-md-4 col-lg-3">
                 <label class="form-label small fw-medium">{{ $label }}</label>
-                <input type="number" step="0.5" name="{{ $field }}" class="form-control form-control-sm measure-input" placeholder="0" value="{{ old($field) }}">
+                @php $oldVal=old($field,''); $oldP=$oldVal; $oldS=''; if(str_contains($oldVal,' | '))[$oldP,$oldS]=explode(' | ',$oldVal,2); @endphp
+                <div class="input-dual-wrap">
+                    <div class="input-group input-group-sm">
+                        <input type="text" inputmode="decimal" name="{{ $field }}" class="form-control measure-input" placeholder="92" value="{{ $oldP }}">
+                        <button type="button" class="btn btn-outline-secondary btn-dual-toggle" title="Ajouter 2ème mesure">{{ $oldS ? '−' : '+' }}</button>
+                    </div>
+                    <input type="text" inputmode="decimal" class="form-control form-control-sm measure-input-2 mt-1{{ $oldS ? '' : ' d-none' }}" placeholder="2ème mesure" value="{{ $oldS }}">
+                </div>
             </div>
             @endforeach
         </div>
@@ -265,7 +274,14 @@
             ] as [$field,$label])
             <div class="col-6 col-md-4 col-lg-3">
                 <label class="form-label small fw-medium">{{ $label }}</label>
-                <input type="number" step="0.5" name="{{ $field }}" class="form-control form-control-sm measure-input" placeholder="0" value="{{ old($field) }}">
+                @php $oldVal=old($field,''); $oldP=$oldVal; $oldS=''; if(str_contains($oldVal,' | '))[$oldP,$oldS]=explode(' | ',$oldVal,2); @endphp
+                <div class="input-dual-wrap">
+                    <div class="input-group input-group-sm">
+                        <input type="text" inputmode="decimal" name="{{ $field }}" class="form-control measure-input" placeholder="92" value="{{ $oldP }}">
+                        <button type="button" class="btn btn-outline-secondary btn-dual-toggle" title="Ajouter 2ème mesure">{{ $oldS ? '−' : '+' }}</button>
+                    </div>
+                    <input type="text" inputmode="decimal" class="form-control form-control-sm measure-input-2 mt-1{{ $oldS ? '' : ' d-none' }}" placeholder="2ème mesure" value="{{ $oldS }}">
+                </div>
             </div>
             @endforeach
         </div>
@@ -287,7 +303,14 @@
             ] as [$field,$label])
             <div class="col-6 col-md-4 col-lg-3">
                 <label class="form-label small fw-medium">{{ $label }}</label>
-                <input type="number" step="0.5" name="{{ $field }}" class="form-control form-control-sm measure-input" placeholder="0" value="{{ old($field) }}">
+                @php $oldVal=old($field,''); $oldP=$oldVal; $oldS=''; if(str_contains($oldVal,' | '))[$oldP,$oldS]=explode(' | ',$oldVal,2); @endphp
+                <div class="input-dual-wrap">
+                    <div class="input-group input-group-sm">
+                        <input type="text" inputmode="decimal" name="{{ $field }}" class="form-control measure-input" placeholder="92" value="{{ $oldP }}">
+                        <button type="button" class="btn btn-outline-secondary btn-dual-toggle" title="Ajouter 2ème mesure">{{ $oldS ? '−' : '+' }}</button>
+                    </div>
+                    <input type="text" inputmode="decimal" class="form-control form-control-sm measure-input-2 mt-1{{ $oldS ? '' : ' d-none' }}" placeholder="2ème mesure" value="{{ $oldS }}">
+                </div>
             </div>
             @endforeach
         </div>
@@ -577,8 +600,39 @@
         });
     });
 
-    // --- Soumission du formulaire ---
+    // --- Champs mesure double (bouton + pour 2ème valeur) ---
+    document.querySelectorAll('.input-dual-wrap').forEach(wrap => {
+        const primary   = wrap.querySelector('.measure-input');
+        const secondary = wrap.querySelector('.measure-input-2');
+        const toggle    = wrap.querySelector('.btn-dual-toggle');
+
+        toggle.addEventListener('click', () => {
+            const showing = !secondary.classList.contains('d-none');
+            secondary.classList.toggle('d-none', showing);
+            toggle.textContent = showing ? '+' : '−';
+            if (showing) secondary.value = '';
+            else secondary.focus();
+        });
+
+        // virgule → point à la saisie
+        [primary, secondary].forEach(inp => {
+            inp.addEventListener('input', function() {
+                const s = this.selectionStart, e = this.selectionEnd;
+                this.value = this.value.replace(',', '.');
+                this.setSelectionRange(s, e);
+            });
+        });
+    });
+
+    // --- Soumission du formulaire : combine les deux valeurs ---
     document.getElementById('mesureForm')?.addEventListener('submit', function() {
+        this.querySelectorAll('.input-dual-wrap').forEach(wrap => {
+            const primary   = wrap.querySelector('.measure-input');
+            const secondary = wrap.querySelector('.measure-input-2');
+            const p = primary.value.trim();
+            const s = secondary && !secondary.classList.contains('d-none') ? secondary.value.trim() : '';
+            if (p && s) primary.value = p + ' | ' + s;
+        });
         const btn = document.getElementById('btnSubmitMesure');
         btn.disabled = true;
         document.getElementById('submitSpinner').classList.remove('d-none');

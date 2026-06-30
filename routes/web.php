@@ -105,8 +105,8 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     // ---- Modèles ----
     Route::prefix('modeles')->name('modeles.')->group(function () {
         Route::get('/', [ModeleWebController::class, 'index'])->name('index');
-        Route::get('/nouveau', [ModeleWebController::class, 'create'])->name('create');
-        Route::post('/', [ModeleWebController::class, 'store'])->name('store');
+        Route::post('/rapide', [ModeleWebController::class, 'quickStore'])->name('quick-store');
+        Route::post('/rapide-video', [ModeleWebController::class, 'quickStoreVideos'])->name('quick-store-videos');
         Route::get('/{id}', [ModeleWebController::class, 'show'])->name('show');
         Route::get('/{id}/modifier', [ModeleWebController::class, 'edit'])->name('edit');
         Route::put('/{id}', [ModeleWebController::class, 'update'])->name('update');
@@ -156,6 +156,7 @@ Route::middleware(['auth', 'subscription'])->group(function () {
     // ---- Profil ----
     Route::get('/profil', [UtilisateurWebController::class, 'profile'])->name('profile');
     Route::put('/profil', [UtilisateurWebController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profil/photo', [UtilisateurWebController::class, 'uploadPhoto'])->name('profile.photo.upload');
     Route::delete('/profil/photo', [UtilisateurWebController::class, 'deletePhoto'])->name('profile.photo.delete');
     Route::post('/profil/mot-de-passe', [UtilisateurWebController::class, 'changePassword'])->name('profile.password');
 

@@ -23,49 +23,59 @@ class ModeleWebController extends Controller
             $query->where('nom', 'like', '%' . $request->search . '%');
         }
 
-        $modeles = $query->paginate(16);
+        $modeles = $query->withCount('mesures')->paginate(16);
         $categories = ['ROBE', 'JUPE', 'HOMME', 'ENFANT', 'AUTRE'];
         return view('modeles.index', compact('modeles', 'categories'));
     }
 
-    public function create()
-    {
-        $categories = ['ROBE', 'JUPE', 'HOMME', 'ENFANT', 'AUTRE'];
-        return view('modeles.create', compact('categories'));
-    }
-
-    public function store(Request $request)
+    public function quickStore(Request $request)
     {
         $request->validate([
-            'nom' => 'required|string|max:100',
-            'categorie' => 'required|in:ROBE,JUPE,HOMME,ENFANT,AUTRE',
-            'prix' => 'nullable|numeric|min:0',
-            'description' => 'nullable|string|max:1000',
-            'photo' => 'nullable|image|max:5120',
-            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/webm|max:51200',
+            'photos'   => 'required|array|min:1|max:30',
+            'photos.*' => 'required|image|max:10240',
         ]);
 
-        $user = Auth::user();
-        $data = [
-            'id' => Str::uuid(),
-            'nom' => $request->nom,
-            'description' => $request->description,
-            'prix' => $request->prix,
-            'categorie' => $request->categorie,
-            'est_actif' => true,
-            'atelier_id' => $user->atelier_id,
-            'date_creation' => now(),
-        ];
-
-        if ($request->hasFile('photo')) {
-            $data['photo_path'] = $request->file('photo')->store('model_photo', 'public');
-        }
-        if ($request->hasFile('video')) {
-            $data['video_path'] = $request->file('video')->store('model_video', 'public');
+        $user  = Auth::user();
+        $count = 0;
+        foreach ($request->file('photos') as $photo) {
+            Modele::create([
+                'id'             => Str::uuid(),
+                'nom'            => '',
+                'categorie'      => 'AUTRE',
+                'est_actif'      => true,
+                'atelier_id'     => $user->atelier_id,
+                'date_creation'  => now(),
+                'photo_path'     => $photo->store('model_photo', 'public'),
+            ]);
+            $count++;
         }
 
-        Modele::create($data);
-        return redirect()->route('modeles.index')->with('success', 'Modèle créé avec succès');
+        return response()->json(['count' => $count]);
+    }
+
+    public function quickStoreVideos(Request $request)
+    {
+        $request->validate([
+            'videos'   => 'required|array|min:1|max:10',
+            'videos.*' => 'required|file|mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/webm|max:102400',
+        ]);
+
+        $user  = Auth::user();
+        $count = 0;
+        foreach ($request->file('videos') as $video) {
+            Modele::create([
+                'id'            => Str::uuid(),
+                'nom'           => '',
+                'categorie'     => 'AUTRE',
+                'est_actif'     => true,
+                'atelier_id'    => $user->atelier_id,
+                'date_creation' => now(),
+                'video_path'    => $video->store('model_video', 'public'),
+            ]);
+            $count++;
+        }
+
+        return response()->json(['count' => $count]);
     }
 
     public function show($id)

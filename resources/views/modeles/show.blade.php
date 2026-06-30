@@ -14,7 +14,7 @@
         @endif
         @if($modele->video_path)
             <video class="w-100 mt-3 rounded" controls>
-                <source src="{{ asset($modele->video_path) }}">
+                <source src="{{ $modele->video_url }}">
             </video>
         @endif
     </div>

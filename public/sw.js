@@ -1,4 +1,4 @@
-const ATELIKO_CACHE = 'ateliko-shell-v2';
+const ATELIKO_CACHE = 'ateliko-shell-v3';
 const SHELL_ASSETS = [
     '/',
     '/manifest.json',
@@ -34,7 +34,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
 
+    const url = new URL(event.request.url);
+    if (url.pathname.includes('/storage/')) return;
+
     event.respondWith(
-        fetch(event.request).catch(() => caches.match(event.request))
+        fetch(event.request).catch(() =>
+            caches.match(event.request).then(r => r || new Response('', { status: 503 }))
+        )
     );
 });

@@ -158,6 +158,18 @@ class UtilisateurWebController extends Controller
         return redirect()->route('profile')->with('success', 'Profil mis à jour');
     }
 
+    public function uploadPhoto(Request $request)
+    {
+        $request->validate(['photo' => 'required|image|max:5120']);
+        $user = Auth::user();
+        if ($user->photo_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->photo_path);
+        }
+        $path = $request->file('photo')->store('user_photo', 'public');
+        $user->update(['photo_path' => $path]);
+        return redirect()->route('profile')->with('success', 'Photo de profil mise à jour');
+    }
+
     public function deletePhoto()
     {
         $user = Auth::user();

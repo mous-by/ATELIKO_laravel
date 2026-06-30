@@ -350,7 +350,7 @@
                     <div class="col-12 text-center text-muted py-4">
                         <i class="bx bx-palette fs-2"></i>
                         <p class="mt-2">Aucun modèle disponible.<br>
-                        <a href="{{ route('modeles.create') }}" class="btn btn-sm btn-outline-primary mt-2">Ajouter un modèle</a></p>
+                        <a href="{{ route('modeles.index') }}" class="btn btn-sm btn-outline-primary mt-2">Ajouter un modèle</a></p>
                     </div>
                     @endforelse
                 </div>

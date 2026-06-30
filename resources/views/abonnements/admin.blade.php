@@ -69,7 +69,7 @@
                     </div>
                     <div class="col-md-2">
                         @if($p->preuve_url)
-                        <a href="{{ asset($p->preuve_url) }}" target="_blank"
+                        <a href="{{ \Storage::disk('public')->url($p->preuve_url) }}" target="_blank"
                            class="btn btn-sm btn-outline-info w-100">
                             <i class="bx bx-file me-1"></i>Voir preuve
                         </a>
